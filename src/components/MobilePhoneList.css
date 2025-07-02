@@ -30,10 +30,111 @@
   margin-bottom: 3rem;
 }
 
+/* Comparison Bar */
+.comparison-bar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.selected-phones {
+  flex: 1;
+}
+
+.selection-text {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.selected-phones-list {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.selected-phone-item {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.remove-btn {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.comparison-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.compare-btn, .clear-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.compare-btn {
+  background: white;
+  color: #667eea;
+}
+
+.compare-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.compare-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.clear-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.clear-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .phones-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 2rem;
+}
+
+.phone-card-wrapper {
+  position: relative;
 }
 
 .phone-card-link {
@@ -55,6 +156,54 @@
   transform: translateY(-4px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
   border-color: #667eea;
+}
+
+.phone-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e0edff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+}
+
+/* Selection Overlay */
+.selection-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+.selection-checkbox {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #d1d5db;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.selection-checkbox:hover:not(.disabled) {
+  border-color: #667eea;
+  background: #f0f4ff;
+  transform: scale(1.1);
+}
+
+.selection-checkbox.checked {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.selection-checkbox.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .phone-image-container {
@@ -202,6 +351,20 @@
   
   .phone-card-content {
     padding: 1rem;
+  }
+  
+  .comparison-bar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+  }
+  
+  .comparison-actions {
+    align-self: stretch;
+  }
+  
+  .compare-btn, .clear-btn {
+    flex: 1;
   }
 }
 

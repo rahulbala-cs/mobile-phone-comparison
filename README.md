@@ -6,6 +6,9 @@ A clean, focused React application for displaying mobile phone content from Cont
 
 - **Mobile Phone Display**: Single phone detail view with hero section and specifications
 - **Phone Listing**: Grid view of all mobile phones with quick specs
+- **Phone Comparison**: Side-by-side comparison of two mobile phones with highlighted differences
+- **Smart Selection**: Interactive phone selection with comparison bar
+- **Dynamic URLs**: Clean comparison URLs like `/compare/iphone-15-vs-galaxy-s24`
 - **Contentstack Integration**: Direct API integration with image optimization
 - **SEO Optimized**: Dynamic meta tags using React Helmet
 - **Responsive Design**: Mobile-first responsive layout
@@ -43,7 +46,8 @@ npm test           # Run tests
 
 ## Routes
 
-- `/` - List all mobile phones
+- `/` - List all mobile phones with comparison selection
+- `/compare/{phone1-slug}-vs-{phone2-slug}` - Compare two phones side-by-side (e.g., `/compare/iphone-15-vs-galaxy-s24`)
 - `/{entry.url}` - Individual mobile phone pages using the content's URL field (e.g., `/mobiles/iphone-16-pro-max`)
 
 ## Content Model
@@ -62,15 +66,21 @@ Expected "mobiles" content type fields:
 ```
 src/
 ├── components/
-│   ├── MobilePhoneDetail.tsx    # Single phone view
+│   ├── MobilePhoneDetail.tsx       # Single phone view
 │   ├── MobilePhoneDetail.css
-│   ├── MobilePhoneList.tsx      # Phone listing
-│   └── MobilePhoneList.css
+│   ├── MobilePhoneList.tsx         # Phone listing with comparison
+│   ├── MobilePhoneList.css
+│   ├── MobilePhoneComparison.tsx   # Side-by-side comparison
+│   ├── MobilePhoneComparison.css
+│   ├── PhoneSelector.tsx           # Phone selection modal
+│   └── PhoneSelector.css
 ├── services/
-│   └── contentstackService.ts   # API integration
+│   └── contentstackService.ts      # API integration
 ├── types/
-│   └── MobilePhone.ts           # TypeScript interfaces
-└── App.tsx                      # Main routing
+│   └── MobilePhone.ts              # TypeScript interfaces
+├── utils/
+│   └── urlUtils.ts                 # URL generation helpers
+└── App.tsx                         # Main routing
 ```
 
 ## Deployment

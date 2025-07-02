@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import MobilePhoneList from './components/MobilePhoneList';
 import MobilePhoneDetail from './components/MobilePhoneDetail';
+import MobilePhoneComparison from './components/MobilePhoneComparison';
 import './App.css';
 
 function App() {
@@ -13,6 +14,9 @@ function App() {
           <Routes>
             {/* List all mobile phones */}
             <Route path="/" element={<MobilePhoneList />} />
+            
+            {/* Mobile phone comparison page */}
+            <Route path="/compare/:phones" element={<MobilePhoneComparison />} />
             
             {/* Individual mobile phone detail page using content URL field */}
             <Route path="*" element={<MobilePhoneDetail />} />
