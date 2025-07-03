@@ -6,9 +6,9 @@ import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
 import PhoneSelector from './PhoneSelector';
-import './MobilePhoneComparison.css';
+import './MySmartPriceComparison.css';
 
-const MobilePhoneComparison: React.FC = () => {
+const MySmartPriceComparison: React.FC = () => {
   const { phones: phonesParam } = useParams<{ phones: string }>();
   const navigate = useNavigate();
   
@@ -19,11 +19,7 @@ const MobilePhoneComparison: React.FC = () => {
   const [showOnlyDifferences, setShowOnlyDifferences] = useState<boolean>(false);
   const [showPhoneSelector, setShowPhoneSelector] = useState<boolean>(false);
   const [selectingSlot, setSelectingSlot] = useState<number | null>(null);
-  const [imageGallery, setImageGallery] = useState<{ phone: MobilePhone; isOpen: boolean; currentImage: number }>({ 
-    phone: null as any, 
-    isOpen: false, 
-    currentImage: 0 
-  });
+  const [imageGallery, setImageGallery] = useState<{ phone: MobilePhone; isOpen: boolean }>({ phone: null as any, isOpen: false });
 
   useEffect(() => {
     const fetchAllPhones = async () => {
@@ -99,32 +95,11 @@ const MobilePhoneComparison: React.FC = () => {
   };
 
   const openImageGallery = (phone: MobilePhone) => {
-    setImageGallery({ phone, isOpen: true, currentImage: 0 });
+    setImageGallery({ phone, isOpen: true });
   };
 
   const closeImageGallery = () => {
-    setImageGallery({ phone: null as any, isOpen: false, currentImage: 0 });
-  };
-
-  const setCurrentImage = (index: number) => {
-    setImageGallery(prev => ({ ...prev, currentImage: index }));
-  };
-
-  const getCurrentImageUrl = () => {
-    if (!imageGallery.phone) return '';
-    
-    if (imageGallery.currentImage === 0) {
-      return imageGallery.phone.lead_image.url;
-    }
-    
-    if (imageGallery.phone.images && imageGallery.phone.images.length > 0) {
-      const imageIndex = imageGallery.currentImage - 1;
-      if (imageIndex >= 0 && imageIndex < imageGallery.phone.images.length) {
-        return imageGallery.phone.images[imageIndex].url;
-      }
-    }
-    
-    return imageGallery.phone.lead_image.url;
+    setImageGallery({ phone: null as any, isOpen: false });
   };
 
   // Helper function to check if all phones have the same value for a spec
@@ -155,65 +130,6 @@ const MobilePhoneComparison: React.FC = () => {
     ? specifications.filter(spec => hasDifferences(spec.key))
     : specifications;
 
-  // Function to determine the winner for each specification
-  const getSpecWinner = (specKey: keyof MobilePhone['specifications']) => {
-    const validPhones = phones.filter(phone => phone !== null) as MobilePhone[];
-    if (validPhones.length < 2) return [];
-
-    const values = validPhones.map((phone, index) => ({
-      value: phone.specifications[specKey] || 'N/A',
-      phoneIndex: phones.indexOf(phone),
-      phone
-    }));
-
-    // Specifications where higher is better
-    const higherIsBetter = ['ram', 'storage', 'battery', 'front_camera', 'rear_camera', 'display_resolution', 'screen_to_body_ratio'];
-    // Specifications where lower is better
-    const lowerIsBetter = ['weight'];
-
-    if (!higherIsBetter.includes(specKey) && !lowerIsBetter.includes(specKey)) {
-      return []; // No winner for non-numeric specs
-    }
-
-    // Extract numeric values
-    const numericValues = values.map(item => {
-      if (!item.value || item.value === 'N/A') return { ...item, numericValue: 0 };
-      
-      let numericValue = 0;
-      const valueStr = item.value.toString().toLowerCase();
-      
-      // Extract first number from the string
-      const match = valueStr.match(/(\d+(?:\.\d+)?)/);
-      if (match) {
-        numericValue = parseFloat(match[1]);
-        
-        // Handle units for better comparison
-        if (valueStr.includes('gb') && specKey === 'ram') numericValue *= 1; // GB for RAM
-        if (valueStr.includes('gb') && specKey === 'storage') numericValue *= 1; // GB for storage
-        if (valueStr.includes('mah')) numericValue *= 1; // mAh for battery
-        if (valueStr.includes('mp')) numericValue *= 1; // MP for camera
-        if (valueStr.includes('g') && specKey === 'weight') numericValue *= 1; // grams for weight
-      }
-      
-      return { ...item, numericValue };
-    }).filter(item => item.numericValue > 0);
-
-    if (numericValues.length === 0) return [];
-
-    // Find the best value
-    let bestValue: number;
-    if (higherIsBetter.includes(specKey)) {
-      bestValue = Math.max(...numericValues.map(item => item.numericValue));
-    } else {
-      bestValue = Math.min(...numericValues.map(item => item.numericValue));
-    }
-
-    // Return indices of phones with the best value
-    return numericValues
-      .filter(item => item.numericValue === bestValue)
-      .map(item => item.phoneIndex);
-  };
-
   const getExpertScore = (phone: MobilePhone) => {
     // Will be populated from CMS field later
     return null;
@@ -242,8 +158,8 @@ const MobilePhoneComparison: React.FC = () => {
       <div className="msp-error">
         <h2>Comparison Error</h2>
         <p>{error}</p>
-        <button onClick={() => navigate('/')}>
-          Back to Phone List
+        <button onClick={() => navigate('/compare')}>
+          Go to Comparison
         </button>
       </div>
     );
@@ -282,7 +198,7 @@ const MobilePhoneComparison: React.FC = () => {
             <div className="msp-gallery-content">
               <div className="msp-gallery-main">
                 <img
-                  src={contentstackService.optimizeImage(getCurrentImageUrl(), {
+                  src={contentstackService.optimizeImage(imageGallery.phone.lead_image.url, {
                     width: 600,
                     format: 'webp',
                     quality: 90
@@ -291,31 +207,31 @@ const MobilePhoneComparison: React.FC = () => {
                   className="msp-gallery-main-image"
                 />
               </div>
-              <div className="msp-gallery-thumbnails">
-                <img
-                  src={contentstackService.optimizeImage(imageGallery.phone.lead_image.url, {
-                    width: 100,
-                    format: 'webp',
-                    quality: 80
-                  })}
-                  alt="Main"
-                  className={`msp-gallery-thumb ${imageGallery.currentImage === 0 ? 'active' : ''}`}
-                  onClick={() => setCurrentImage(0)}
-                />
-                {imageGallery.phone.images && imageGallery.phone.images.map((image, index) => (
+              {imageGallery.phone.images && imageGallery.phone.images.length > 0 && (
+                <div className="msp-gallery-thumbnails">
                   <img
-                    key={image.uid}
-                    src={contentstackService.optimizeImage(image.url, {
+                    src={contentstackService.optimizeImage(imageGallery.phone.lead_image.url, {
                       width: 100,
                       format: 'webp',
                       quality: 80
                     })}
-                    alt={`${imageGallery.phone.title} ${index + 1}`}
-                    className={`msp-gallery-thumb ${imageGallery.currentImage === index + 1 ? 'active' : ''}`}
-                    onClick={() => setCurrentImage(index + 1)}
+                    alt="Main"
+                    className="msp-gallery-thumb active"
                   />
-                ))}
-              </div>
+                  {imageGallery.phone.images.map((image, index) => (
+                    <img
+                      key={image.uid}
+                      src={contentstackService.optimizeImage(image.url, {
+                        width: 100,
+                        format: 'webp',
+                        quality: 80
+                      })}
+                      alt={`${imageGallery.phone.title} ${index + 1}`}
+                      className="msp-gallery-thumb"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -437,36 +353,16 @@ const MobilePhoneComparison: React.FC = () => {
         {/* Comparison Grid */}
         <div className="msp-comparison-grid">
           {/* Dynamic Specifications */}
-          {filteredSpecs.map((spec) => {
-            const winners = getSpecWinner(spec.key);
-            return (
-              <React.Fragment key={spec.key}>
-                <div className="msp-spec-label">{spec.label}</div>
-                {phones.map((phone, index) => {
-                  const isWinner = winners.includes(index);
-                  return (
-                    <div 
-                      key={`${spec.key}-${index}`} 
-                      className={`msp-spec-value ${isWinner ? 'msp-winner' : ''}`}
-                    >
-                      {phone ? (
-                        <div className="msp-spec-content">
-                          <span className="msp-spec-text">
-                            {phone.specifications[spec.key] || 'N/A'}
-                          </span>
-                          {isWinner && phone.specifications[spec.key] && phone.specifications[spec.key] !== 'N/A' && (
-                            <span className="msp-winner-badge">🏆</span>
-                          )}
-                        </div>
-                      ) : (
-                        '-'
-                      )}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
+          {filteredSpecs.map((spec) => (
+            <React.Fragment key={spec.key}>
+              <div className="msp-spec-label">{spec.label}</div>
+              {phones.map((phone, index) => (
+                <div key={`${spec.key}-${index}`} className="msp-spec-value">
+                  {phone ? (phone.specifications[spec.key] || 'N/A') : '-'}
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
 
           {/* Price - Always show regardless of differences toggle */}
           <div className="msp-spec-label">Price</div>
@@ -543,4 +439,4 @@ const MobilePhoneComparison: React.FC = () => {
   );
 };
 
-export default MobilePhoneComparison;
+export default MySmartPriceComparison;
