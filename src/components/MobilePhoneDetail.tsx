@@ -13,7 +13,6 @@ const MobilePhoneDetail: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const [selectedVariant, setSelectedVariant] = useState<number>(0);
   const [relatedPhones, setRelatedPhones] = useState<MobilePhone[]>([]);
 
   useEffect(() => {
@@ -170,19 +169,16 @@ const MobilePhoneDetail: React.FC = () => {
         <section className="pricing-section">
           <div className="pricing-container">
             <h2 className="pricing-title">Pricing & Variants</h2>
+            <p className="pricing-subtitle">Choose the variant that best fits your needs</p>
             
             <div className="variants-grid">
               {mobilePhone.variants.map((variant, index) => (
                 <div 
                   key={variant._metadata.uid}
-                  className={`variant-card ${index === selectedVariant ? 'selected' : ''}`}
-                  onClick={() => setSelectedVariant(index)}
+                  className="variant-card"
                 >
                   <div className="variant-name">{variant.variant_name}</div>
                   <div className="variant-price">₹{variant.price.toLocaleString('en-IN')}</div>
-                  {index === selectedVariant && (
-                    <div className="variant-badge">Selected</div>
-                  )}
                 </div>
               ))}
             </div>
@@ -224,6 +220,7 @@ const MobilePhoneDetail: React.FC = () => {
       <section className="specifications-section">
         <div className="specs-container">
           <h2 className="specs-title">Technical Specifications</h2>
+          <p className="specs-subtitle">Detailed technical information about this device</p>
           
           <div className="specs-grid">
             {mobilePhone.specifications.display_resolution && (

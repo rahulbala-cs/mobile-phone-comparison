@@ -91,6 +91,37 @@ class ContentstackService {
     }
   }
 
+  // Fetch navigation menus by type
+  async getNavigationMenuByType(menuType: string): Promise<any> {
+    try {
+      const Query = this.stack.ContentType('navigation_menu').Query();
+      Query.where('menu_type', menuType);
+      const result = await Query.includeReference().toJSON().find();
+      
+      if (!result || !result[0] || result[0].length === 0) {
+        return null;
+      }
+
+      return result[0][0];
+    } catch (error: any) {
+      console.error('Error fetching navigation menu:', error);
+      throw new Error(error.message || 'Failed to fetch navigation menu');
+    }
+  }
+
+  // Fetch all navigation menus
+  async getAllNavigationMenus(): Promise<any[]> {
+    try {
+      const Query = this.stack.ContentType('navigation_menu').Query();
+      const result = await Query.includeReference().toJSON().find();
+      
+      return result[0] || [];
+    } catch (error: any) {
+      console.error('Error fetching navigation menus:', error);
+      throw new Error(error.message || 'Failed to fetch navigation menus');
+    }
+  }
+
   // Optimize image using Contentstack's Image Delivery API
   optimizeImage(imageUrl: string, options: {
     width?: number;
