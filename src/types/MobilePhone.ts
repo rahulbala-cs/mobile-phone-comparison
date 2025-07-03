@@ -10,6 +10,12 @@ export interface ContentstackAsset {
   url: string;
   title: string;
   _version: number;
+  publish_details?: {
+    time: string;
+    user: string;
+    environment: string;
+    locale: string;
+  };
 }
 
 export interface SEO {
@@ -25,6 +31,8 @@ export interface Specifications {
   ram: string;
   storage: string;
   front_camera: string;
+  rear_camera: string;
+  cpu: string;
   weight: string;
   battery: string;
 }
@@ -34,19 +42,54 @@ export interface Taxonomy {
   uid: string;
 }
 
+export interface TaxonomyReference {
+  taxonomy_uid: string;
+  term_uid: string;
+}
+
+export interface RelatedPhone {
+  uid: string;
+  _content_type_uid: string;
+}
+
+export interface Variant {
+  variant_name: string;
+  _metadata: {
+    uid: string;
+  };
+  price: number;
+}
+
+export interface PurchaseLink {
+  title: string;
+  href: string;
+}
+
 export interface MobilePhone {
   uid: string;
   title: string;
   url: string;
   description: string;
   lead_image: ContentstackAsset;
+  images?: ContentstackAsset[];
   seo: SEO;
   specifications: Specifications;
-  taxonomies?: {
-    brand?: Taxonomy[];
-  };
+  taxonomies?: TaxonomyReference[];
+  related_phones?: RelatedPhone[];
+  tags?: string[];
+  variants?: Variant[];
+  amazon_link?: PurchaseLink;
+  flipkart_link?: PurchaseLink;
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  updated_by?: string;
   locale: string;
   _version: number;
+  publish_details?: {
+    time: string;
+    user: string;
+    environment: string;
+    locale: string;
+  };
 }

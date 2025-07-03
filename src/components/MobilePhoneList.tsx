@@ -35,15 +35,15 @@ const MobilePhoneList: React.FC = () => {
     if (selectedPhones.find(p => p.uid === phone.uid)) {
       // Remove if already selected
       setSelectedPhones(selectedPhones.filter(p => p.uid !== phone.uid));
-    } else if (selectedPhones.length < 2) {
-      // Add if less than 2 selected
+    } else if (selectedPhones.length < 4) {
+      // Add if less than 4 selected
       setSelectedPhones([...selectedPhones, phone]);
     }
   };
 
   const handleCompare = () => {
-    if (selectedPhones.length === 2) {
-      const comparisonUrl = generateComparisonUrl(selectedPhones[0].title, selectedPhones[1].title);
+    if (selectedPhones.length >= 2) {
+      const comparisonUrl = generateComparisonUrl(...selectedPhones.map(p => p.title));
       navigate(comparisonUrl);
     }
   };
@@ -94,8 +94,10 @@ const MobilePhoneList: React.FC = () => {
             <div className="selected-phones">
               <span className="selection-text">
                 {selectedPhones.length === 1 
-                  ? 'Select one more phone to compare' 
-                  : 'Ready to compare!'
+                  ? 'Select at least one more phone to compare (up to 4 total)' 
+                  : selectedPhones.length < 4
+                    ? `${selectedPhones.length} phones selected - add more or compare now`
+                    : 'Maximum 4 phones selected - ready to compare!'
                 }
               </span>
               <div className="selected-phones-list">
@@ -116,7 +118,7 @@ const MobilePhoneList: React.FC = () => {
               <button 
                 className="compare-btn"
                 onClick={handleCompare}
-                disabled={selectedPhones.length !== 2}
+                disabled={selectedPhones.length < 2}
               >
                 Compare Now
               </button>
@@ -133,7 +135,7 @@ const MobilePhoneList: React.FC = () => {
         <div className="phones-grid">
           {mobilePhones.map((phone) => {
             const isSelected = selectedPhones.find(p => p.uid === phone.uid);
-            const canSelect = selectedPhones.length < 2 || isSelected;
+            const canSelect = selectedPhones.length < 4 || isSelected;
             
             return (
               <div key={phone.uid} className="phone-card-wrapper">
@@ -155,9 +157,9 @@ const MobilePhoneList: React.FC = () => {
                     </div>
                     
                     <div className="phone-card-content">
-                      {phone.taxonomies?.brand && phone.taxonomies.brand.length > 0 && (
+                      {phone.tags && phone.tags.length > 0 && (
                         <div className="phone-brand">
-                          {phone.taxonomies.brand[0].name}
+                          {phone.tags[0]}
                         </div>
                       )}
                       
@@ -172,7 +174,19 @@ const MobilePhoneList: React.FC = () => {
                         </p>
                       )}
                       
+                      {phone.variants && phone.variants.length > 0 && (
+                        <div className="phone-pricing">
+                          <span className="price-label">From</span>
+                          <span className="price-value">₹{phone.variants[0].price.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+
                       <div className="phone-key-specs">
+                        {phone.specifications.cpu && (
+                          <span className="key-spec">
+                            <strong>CPU:</strong> {phone.specifications.cpu}
+                          </span>
+                        )}
                         {phone.specifications.ram && (
                           <span className="key-spec">
                             <strong>RAM:</strong> {phone.specifications.ram}
@@ -181,6 +195,11 @@ const MobilePhoneList: React.FC = () => {
                         {phone.specifications.storage && (
                           <span className="key-spec">
                             <strong>Storage:</strong> {phone.specifications.storage}
+                          </span>
+                        )}
+                        {phone.specifications.rear_camera && (
+                          <span className="key-spec">
+                            <strong>Camera:</strong> {phone.specifications.rear_camera}
                           </span>
                         )}
                       </div>

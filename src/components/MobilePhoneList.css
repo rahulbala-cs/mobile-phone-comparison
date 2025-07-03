@@ -255,6 +255,25 @@
   margin-bottom: 1rem;
 }
 
+.phone-pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.price-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.price-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
 .phone-key-specs {
   display: flex;
   flex-wrap: wrap;

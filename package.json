@@ -12,6 +12,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "contentstack": "^3.25.3",
+    "dotenv": "^17.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-helmet-async": "^2.0.5",

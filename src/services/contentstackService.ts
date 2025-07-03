@@ -75,6 +75,22 @@ class ContentstackService {
     }
   }
 
+  // Fetch multiple mobile phones by UIDs (for related phones)
+  async getMobilePhonesByUIDs(uids: string[]): Promise<MobilePhone[]> {
+    try {
+      if (!uids || uids.length === 0) return [];
+      
+      const Query = this.stack.ContentType('mobiles').Query();
+      Query.containedIn('uid', uids);
+      const result = await Query.includeReference().toJSON().find();
+      
+      return result[0] || [];
+    } catch (error: any) {
+      console.error('Error fetching mobile phones by UIDs:', error);
+      throw new Error(error.message || 'Failed to fetch related mobile phones');
+    }
+  }
+
   // Optimize image using Contentstack's Image Delivery API
   optimizeImage(imageUrl: string, options: {
     width?: number;

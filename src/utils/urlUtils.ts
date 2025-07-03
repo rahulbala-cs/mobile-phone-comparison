@@ -10,28 +10,25 @@ export const generatePhoneSlug = (title: string): string => {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 };
 
-export const generateComparisonUrl = (phone1Title: string, phone2Title: string): string => {
-  const slug1 = generatePhoneSlug(phone1Title);
-  const slug2 = generatePhoneSlug(phone2Title);
-  return `/compare/${slug1}-vs-${slug2}`;
+export const generateComparisonUrl = (...phoneTitles: string[]): string => {
+  const slugs = phoneTitles.map(title => generatePhoneSlug(title));
+  return `/compare/${slugs.join('-vs-')}`;
 };
 
-export const parseComparisonUrl = (params: string): { phone1Slug: string; phone2Slug: string } | null => {
-  // Expected format: "phone1-vs-phone2"
-  const vsIndex = params.lastIndexOf('-vs-');
+export const parseComparisonUrl = (params: string): string[] | null => {
+  // Expected format: "phone1-vs-phone2-vs-phone3-vs-phone4"
+  const slugs = params.split('-vs-');
   
-  if (vsIndex === -1) {
+  if (slugs.length < 2 || slugs.length > 4) {
     return null;
   }
   
-  const phone1Slug = params.substring(0, vsIndex);
-  const phone2Slug = params.substring(vsIndex + 4); // 4 = length of '-vs-'
-  
-  if (!phone1Slug || !phone2Slug) {
+  // Ensure all slugs are valid (not empty)
+  if (slugs.some(slug => !slug.trim())) {
     return null;
   }
   
-  return { phone1Slug, phone2Slug };
+  return slugs;
 };
 
 export const findPhoneBySlug = (phones: any[], slug: string): any | null => {

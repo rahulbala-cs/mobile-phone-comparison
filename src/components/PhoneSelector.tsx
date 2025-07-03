@@ -20,7 +20,7 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
 
   const filteredPhones = phones.filter(phone => {
     const matchesSearch = phone.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         phone.taxonomies?.brand?.[0]?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         (phone.tags && phone.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
     const isNotExcluded = !excludePhone || phone.uid !== excludePhone.uid;
     
     return matchesSearch && isNotExcluded;
@@ -68,9 +68,9 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
                 />
               </div>
               <div className="phone-selector-info">
-                {phone.taxonomies?.brand && (
+                {phone.tags && phone.tags.length > 0 && (
                   <span className="phone-selector-brand">
-                    {phone.taxonomies.brand[0]?.name}
+                    {phone.tags[0]}
                   </span>
                 )}
                 <h4 className="phone-selector-title">{phone.title}</h4>
