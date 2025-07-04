@@ -5,18 +5,15 @@ import HeaderNavigation from './components/HeaderNavigation';
 import MobilePhoneList from './components/MobilePhoneList';
 import MobilePhoneDetail from './components/MobilePhoneDetail';
 import MobilePhoneComparison from './components/MobilePhoneComparison';
-import { initLivePreview, isLivePreviewEnabled } from './utils/livePreview';
+import { initializeLivePreview } from './utils/livePreview';
 import './App.css';
 
 function App() {
-  // Initialize Live Preview on app start
+  // Initialize Live Preview globally using standard V3.0 pattern
   useEffect(() => {
-    if (isLivePreviewEnabled()) {
-      initLivePreview();
-      console.log('🔴 Live Preview Mode: Enabled');
-    } else {
-      console.log('⚪ Live Preview Mode: Disabled');
-    }
+    initializeLivePreview().catch(error => {
+      console.error('Failed to initialize Live Preview:', error);
+    });
   }, []);
 
   return (

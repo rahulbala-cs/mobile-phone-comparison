@@ -10,6 +10,7 @@ export interface ContentstackAsset {
   url: string;
   title: string;
   _version: number;
+  $?: any; // Edit tags added by addEditableTags
   publish_details?: {
     time: string;
     user: string;
@@ -35,6 +36,7 @@ export interface Specifications {
   cpu: string;
   weight: string;
   battery: string;
+  $?: any; // Edit tags added by addEditableTags
 }
 
 export interface Taxonomy {
@@ -65,19 +67,22 @@ export interface PurchaseLink {
   href: string;
 }
 
+// Union types for Live Preview compatibility
+type EditableField<T> = T | (T & { $?: any });
+
 export interface MobilePhone {
   uid: string;
-  title: string;
+  title: EditableField<string>;
   url: string;
-  description: string;
+  description: EditableField<string>;
   lead_image: ContentstackAsset;
   images?: ContentstackAsset[];
   seo: SEO;
-  specifications: Specifications;
+  specifications: EditableField<Specifications>;
   taxonomies?: TaxonomyReference[];
   related_phones?: RelatedPhone[];
-  tags?: string[];
-  variants?: Variant[];
+  tags?: EditableField<string[]>;
+  variants?: EditableField<Variant[]>;
   amazon_link?: PurchaseLink;
   flipkart_link?: PurchaseLink;
   created_at: string;
@@ -87,6 +92,7 @@ export interface MobilePhone {
   locale: string;
   _version: number;
   _content_type_uid?: string;
+  $?: any; // Edit tags added by addEditableTags
   publish_details?: {
     time: string;
     user: string;
@@ -94,3 +100,19 @@ export interface MobilePhone {
     locale: string;
   };
 }
+
+// Utility type for extracting actual value from editable fields
+export type ExtractValue<T> = T extends { $?: any } ? Omit<T, '$'> : T;
+
+// Type guards for editable fields
+export const isEditableField = <T>(field: EditableField<T>): field is T & { $?: any } => {
+  return typeof field === 'object' && field !== null && '$' in field;
+};
+
+export const getFieldValue = <T>(field: EditableField<T>): T => {
+  if (isEditableField(field)) {
+    const { $, ...value } = field;
+    return value as T;
+  }
+  return field;
+};

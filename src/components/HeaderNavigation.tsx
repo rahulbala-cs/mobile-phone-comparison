@@ -85,9 +85,11 @@ const HeaderNavigation: React.FC = () => {
     );
   }
 
-  const activeItems = navigationMenu.navigation_items
-    .filter(item => item.is_active)
-    .sort((a, b) => a.order - b.order);
+  const activeItems = navigationMenu?.navigation_items
+    ? navigationMenu.navigation_items
+        .filter(item => item && item.is_active)
+        .sort((a, b) => (a?.order || 0) - (b?.order || 0))
+    : [];
 
   return (
     <header className="header-navigation">
@@ -104,7 +106,7 @@ const HeaderNavigation: React.FC = () => {
           <ul className="nav-list">
             {activeItems.map((item, index) => (
               <li key={index} className="nav-item">
-                {item.sub_items && item.sub_items.length > 0 ? (
+                {item.sub_items && Array.isArray(item.sub_items) && item.sub_items.length > 0 ? (
                   <div className="nav-dropdown">
                     <button
                       className={`nav-link dropdown-toggle ${item.is_featured ? 'featured' : ''}`}
@@ -128,7 +130,9 @@ const HeaderNavigation: React.FC = () => {
                             <div className="dropdown-desc">{item.description}</div>
                           </div>
                         </Link>
-                        {item.sub_items.map((subItem, subIndex) => (
+                        {item.sub_items?.map((subItem, subIndex) => {
+                          if (!subItem) return null;
+                          return (
                           <Link
                             key={subIndex}
                             to={subItem.sub_url}
@@ -141,7 +145,8 @@ const HeaderNavigation: React.FC = () => {
                               <div className="dropdown-desc">{subItem.sub_description}</div>
                             </div>
                           </Link>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -211,20 +216,23 @@ const HeaderNavigation: React.FC = () => {
                     {item.label}
                   </Link>
                 )}
-                {item.sub_items && item.sub_items.length > 0 && (
+                {item.sub_items && Array.isArray(item.sub_items) && item.sub_items.length > 0 && (
                   <ul className="mobile-sub-list">
-                    {item.sub_items.map((subItem, subIndex) => (
-                      <li key={subIndex} className="mobile-sub-item">
-                        <Link
-                          to={subItem.sub_url}
-                          className="mobile-sub-link"
-                          onClick={handleLinkClick}
-                        >
-                          {subItem.sub_icon && <span className="nav-icon">{subItem.sub_icon}</span>}
-                          {subItem.sub_label}
-                        </Link>
-                      </li>
-                    ))}
+                    {item.sub_items.map((subItem, subIndex) => {
+                      if (!subItem) return null;
+                      return (
+                        <li key={subIndex} className="mobile-sub-item">
+                          <Link
+                            to={subItem.sub_url || '#'}
+                            className="mobile-sub-link"
+                            onClick={handleLinkClick}
+                          >
+                            {subItem.sub_icon && <span className="nav-icon">{subItem.sub_icon}</span>}
+                            {subItem.sub_label || 'Unnamed Item'}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </li>

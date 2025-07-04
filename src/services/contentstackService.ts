@@ -1,9 +1,10 @@
 import * as Contentstack from 'contentstack';
+import * as Utils from '@contentstack/utils';
 import { MobilePhone } from '../types/MobilePhone';
 import { isPreviewMode, getPreviewToken } from '../utils/livePreview';
 
 class ContentstackService {
-  private stack: any;
+  private stack: Contentstack.Stack;
 
   constructor() {
     this.stack = Contentstack.Stack({
@@ -21,40 +22,50 @@ class ContentstackService {
 
   // Configure live preview settings
   private getLivePreviewConfig() {
-    if (!isPreviewMode() || !getPreviewToken()) {
+    if (!isPreviewMode()) {
       return undefined;
     }
 
-    return {
-      management_token: getPreviewToken()!,
+    const config: any = {
       enable: true,
       host: process.env.REACT_APP_CONTENTSTACK_APP_HOST || 'app.contentstack.com',
     };
+
+    const previewToken = getPreviewToken();
+    if (previewToken) {
+      config.preview_token = previewToken;
+    }
+
+    return config;
+  }
+
+  // Add editable tags using standard Contentstack Utils
+  private addEditableTagsToEntry(entry: MobilePhone, contentTypeUid: string): MobilePhone {
+    if (!isPreviewMode() || !entry) {
+      return entry;
+    }
+
+    try {
+      // Use standard Contentstack Utils - this is the official way
+      Utils.addEditableTags(entry, contentTypeUid, true);
+      return entry;
+    } catch (error) {
+      console.warn('Failed to add editable tags:', error);
+      return entry;
+    }
   }
 
   // Fetch mobile phone by UID
   async getMobilePhoneByUID(uid: string): Promise<MobilePhone> {
     try {
-      console.log('Fetching mobile phone with UID:', uid);
-      console.log('Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
-      console.log('Preview Mode:', isPreviewMode());
-      
       const Query = this.stack.ContentType('mobiles').Entry(uid);
-      
-      // Enable preview mode if in live preview
-      if (isPreviewMode()) {
-        Query.includeDrafts();
-      }
-      
       const result = await Query.includeReference().toJSON().fetch();
-      
-      console.log('API Response:', result);
       
       if (!result) {
         throw new Error(`Mobile phone with UID ${uid} not found`);
       }
 
-      return result as MobilePhone;
+      return this.addEditableTagsToEntry(result, 'mobiles') as MobilePhone;
     } catch (error: any) {
       console.error('Error fetching mobile phone:', error);
       throw new Error(error.message || 'Failed to fetch mobile phone data');
@@ -64,53 +75,52 @@ class ContentstackService {
   // Fetch mobile phone by URL field
   async getMobilePhoneByURL(url: string): Promise<MobilePhone> {
     try {
-      console.log('Fetching mobile phone with URL:', url);
-      console.log('Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
-      console.log('Preview Mode:', isPreviewMode());
-      
       const Query = this.stack.ContentType('mobiles').Query();
       Query.where('url', url);
       
-      // Enable preview mode if in live preview
-      if (isPreviewMode()) {
-        Query.includeDrafts();
-      }
-      
       const result = await Query.includeReference().toJSON().find();
       
-      console.log('API Response for URL:', result);
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        throw new Error(`Mobile phone with URL ${url} not found`);
+      }
       
-      if (!result || !result[0] || result[0].length === 0) {
+      const [entries] = result;
+      if (!Array.isArray(entries) || entries.length === 0) {
         throw new Error(`Mobile phone with URL ${url} not found`);
       }
 
-      return result[0][0] as MobilePhone;
+      const phoneEntry = entries[0];
+      if (!phoneEntry || typeof phoneEntry !== 'object') {
+        throw new Error(`Invalid mobile phone data structure for URL ${url}`);
+      }
+
+      return this.addEditableTagsToEntry(phoneEntry, 'mobiles') as MobilePhone;
     } catch (error: any) {
       console.error('Error fetching mobile phone by URL:', error);
       throw new Error(error.message || 'Failed to fetch mobile phone data');
     }
   }
 
-  // Fetch all mobile phones (for listing page)
+  // Fetch all mobile phones
   async getAllMobilePhones(): Promise<MobilePhone[]> {
     try {
       const Query = this.stack.ContentType('mobiles').Query();
-      
-      // Enable preview mode if in live preview
-      if (isPreviewMode()) {
-        Query.includeDrafts();
-      }
-      
       const result = await Query.includeReference().toJSON().find();
       
-      return result[0] || [];
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return [];
+      }
+      
+      const phones = Array.isArray(result[0]) ? result[0] : [];
+      
+      return phones.map((phone: any) => this.addEditableTagsToEntry(phone, 'mobiles'));
     } catch (error: any) {
       console.error('Error fetching mobile phones:', error);
       throw new Error(error.message || 'Failed to fetch mobile phones');
     }
   }
 
-  // Fetch multiple mobile phones by UIDs (for related phones)
+  // Fetch multiple mobile phones by UIDs
   async getMobilePhonesByUIDs(uids: string[]): Promise<MobilePhone[]> {
     try {
       if (!uids || uids.length === 0) return [];
@@ -118,14 +128,15 @@ class ContentstackService {
       const Query = this.stack.ContentType('mobiles').Query();
       Query.containedIn('uid', uids);
       
-      // Enable preview mode if in live preview
-      if (isPreviewMode()) {
-        Query.includeDrafts();
-      }
-      
       const result = await Query.includeReference().toJSON().find();
       
-      return result[0] || [];
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return [];
+      }
+      
+      const phones = Array.isArray(result[0]) ? result[0] : [];
+      
+      return phones.map((phone: MobilePhone) => this.addEditableTagsToEntry(phone, 'mobiles'));
     } catch (error: any) {
       console.error('Error fetching mobile phones by UIDs:', error);
       throw new Error(error.message || 'Failed to fetch related mobile phones');

@@ -1,154 +1,84 @@
+// Standard Contentstack Live Preview V3.0 Implementation
+// Following official documentation: https://www.contentstack.com/docs/developers/set-up-live-preview/get-started-with-live-preview-utils-sdk-v3
+
 import ContentstackLivePreview from '@contentstack/live-preview-utils';
+import * as Contentstack from 'contentstack';
 
-interface LivePreviewConfig {
-  apiKey: string;
-  environment: string;
-  enable: boolean;
-  enableEditTags: boolean;
-  host?: string;
-  previewToken?: string;
-}
+// Check if we're in preview mode
+export const isPreviewMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
 
-class LivePreviewManager {
-  private isInitialized: boolean = false;
-  private config: LivePreviewConfig;
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasPreviewParams = urlParams.has('live_preview') || 
+                           urlParams.has('contentstack_preview') ||
+                           urlParams.has('cs_preview');
+  
+  const isInIframe = window !== window.top;
+  const isDevMode = process.env.NODE_ENV === 'development' && 
+                   process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW === 'true';
+  
+  return hasPreviewParams || isInIframe || isDevMode;
+};
 
-  constructor() {
-    this.config = {
-      apiKey: process.env.REACT_APP_CONTENTSTACK_API_KEY || '',
-      environment: process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT || 'prod',
-      enable: process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW === 'true',
-      enableEditTags: process.env.REACT_APP_CONTENTSTACK_LIVE_EDIT_TAGS === 'true',
-      host: process.env.REACT_APP_CONTENTSTACK_APP_HOST,
-      previewToken: process.env.REACT_APP_CONTENTSTACK_PREVIEW_TOKEN,
-    };
+// Get preview token from URL or environment
+export const getPreviewToken = (): string | undefined => {
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenFromUrl = urlParams.get('preview_token') || urlParams.get('contentstack_preview_token');
+    if (tokenFromUrl) return tokenFromUrl;
   }
+  
+  return process.env.REACT_APP_CONTENTSTACK_PREVIEW_TOKEN;
+};
 
-  /**
-   * Initialize Live Preview SDK
-   */
-  public init(): void {
-    if (this.isInitialized || !this.config.enable) {
-      return;
-    }
-
+// Initialize Live Preview SDK - Standard V3.0 Pattern
+export const initializeLivePreview = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
     try {
-      ContentstackLivePreview.init({
-        stackDetails: {
-          apiKey: this.config.apiKey,
-          environment: this.config.environment,
-        },
-        clientUrlParams: {
-          host: this.config.host,
-        },
-        ssr: false,
-        editButton: {
-          enable: this.config.enableEditTags,
-        },
+      if (!isPreviewMode()) {
+        resolve();
+        return;
+      }
+
+      // Standard SDK initialization
+      const stack = Contentstack.Stack({
+        api_key: process.env.REACT_APP_CONTENTSTACK_API_KEY!,
+        delivery_token: process.env.REACT_APP_CONTENTSTACK_DELIVERY_TOKEN!,
+        environment: process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT!,
+        region: process.env.REACT_APP_CONTENTSTACK_REGION === 'EU' ? Contentstack.Region.EU : 
+               process.env.REACT_APP_CONTENTSTACK_REGION === 'AZURE_NA' ? Contentstack.Region.AZURE_NA :
+               process.env.REACT_APP_CONTENTSTACK_REGION === 'AZURE_EU' ? Contentstack.Region.AZURE_EU :
+               process.env.REACT_APP_CONTENTSTACK_REGION === 'GCP_NA' ? Contentstack.Region.GCP_NA :
+               Contentstack.Region.US,
+        live_preview: {
+          preview_token: getPreviewToken() || '',
+          enable: true,
+          host: process.env.REACT_APP_CONTENTSTACK_APP_HOST || 'app.contentstack.com'
+        }
       });
 
-      this.isInitialized = true;
-      console.log('✅ Contentstack Live Preview initialized successfully');
+      // Initialize Live Preview Utils SDK V3.0
+      ContentstackLivePreview.init({
+        stackSdk: stack,
+        enable: true,
+        ssr: false // Client-Side Rendering mode
+      });
+
+      resolve();
     } catch (error) {
-      console.error('❌ Failed to initialize Contentstack Live Preview:', error);
+      reject(error);
     }
+  });
+};
+
+// Export the standard onEntryChange method
+export const onEntryChange = ContentstackLivePreview.onEntryChange;
+
+// Export initialized state checker
+export const isLivePreviewInitialized = (): boolean => {
+  try {
+    return ContentstackLivePreview.hash !== undefined;
+  } catch {
+    return false;
   }
-
-  /**
-   * Check if Live Preview is enabled
-   */
-  public isEnabled(): boolean {
-    return this.config.enable;
-  }
-
-  /**
-   * Check if edit tags are enabled
-   */
-  public isEditTagsEnabled(): boolean {
-    return this.config.enableEditTags;
-  }
-
-  /**
-   * Set up real-time content updates for a component
-   */
-  public onEntryChange(callback: () => void): void {
-    if (!this.isInitialized || !this.config.enable) {
-      return;
-    }
-
-    try {
-      ContentstackLivePreview.onEntryChange(callback);
-    } catch (error) {
-      console.error('❌ Failed to set up onEntryChange:', error);
-    }
-  }
-
-  /**
-   * Get data attributes for Live Preview edit tags
-   */
-  public getEditDataAttributes(
-    entryUid: string,
-    contentTypeUid?: string,
-    fieldPath?: string
-  ): Record<string, string> {
-    if (!this.config.enableEditTags) {
-      return {};
-    }
-
-    // Use the content type UID from entry data, fallback to mobiles content type UID
-    const actualContentTypeUid = contentTypeUid || 'blt6e248f3c32d25409';
-
-    const baseAttributes = {
-      'data-cslp': `${entryUid}.${actualContentTypeUid}${fieldPath ? `.${fieldPath}` : ''}`,
-    };
-
-    return baseAttributes;
-  }
-
-  /**
-   * Check if we're in preview mode
-   */
-  public isPreviewMode(): boolean {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.has('live_preview') || urlParams.has('contentstack_preview');
-  }
-
-  /**
-   * Get preview token for API requests
-   */
-  public getPreviewToken(): string | undefined {
-    return this.config.previewToken;
-  }
-
-  /**
-   * Extract content type UID from entry data
-   */
-  public getContentTypeUid(entry: any): string {
-    // Try to get content type UID from entry metadata
-    if (entry._content_type_uid) {
-      return entry._content_type_uid;
-    }
-    
-    // Fallback to known mobiles content type UID
-    return 'blt6e248f3c32d25409';
-  }
-}
-
-// Create singleton instance
-const livePreview = new LivePreviewManager();
-
-export default livePreview;
-
-// Export utility functions for easier use
-export const initLivePreview = () => livePreview.init();
-export const isLivePreviewEnabled = () => livePreview.isEnabled();
-export const onEntryChange = (callback: () => void) => livePreview.onEntryChange(callback);
-export const getEditDataAttributes = (entryUid: string, contentTypeUid?: string, fieldPath?: string) =>
-  livePreview.getEditDataAttributes(entryUid, contentTypeUid, fieldPath);
-export const isPreviewMode = () => livePreview.isPreviewMode();
-export const getPreviewToken = () => livePreview.getPreviewToken();
-export const getContentTypeUid = (entry: any) => livePreview.getContentTypeUid(entry);
+};

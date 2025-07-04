@@ -20,7 +20,7 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
 
   const filteredPhones = phones.filter(phone => {
     const matchesSearch = phone.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (phone.tags && phone.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+                         (phone.tags && (phone.tags as any[])?.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase())));
     const isNotExcluded = !excludePhone || phone.uid !== excludePhone.uid;
     
     return matchesSearch && isNotExcluded;
@@ -68,18 +68,18 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
                 />
               </div>
               <div className="phone-selector-info">
-                {phone.tags && phone.tags.length > 0 && (
+                {phone.tags && (phone.tags as any[])?.length > 0 && (
                   <span className="phone-selector-brand">
-                    {phone.tags[0]}
+                    {(phone.tags as any[])[0]}
                   </span>
                 )}
                 <h4 className="phone-selector-title">{phone.title}</h4>
                 <div className="phone-quick-specs">
-                  {phone.specifications.ram && (
-                    <span className="quick-spec">RAM: {phone.specifications.ram}</span>
+                  {(phone.specifications as any)?.ram && (
+                    <span className="quick-spec">RAM: {(phone.specifications as any).ram}</span>
                   )}
-                  {phone.specifications.storage && (
-                    <span className="quick-spec">Storage: {phone.specifications.storage}</span>
+                  {(phone.specifications as any)?.storage && (
+                    <span className="quick-spec">Storage: {(phone.specifications as any).storage}</span>
                   )}
                 </div>
               </div>

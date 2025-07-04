@@ -32,18 +32,18 @@ const MobilePhoneList: React.FC = () => {
     fetchMobilePhones();
   }, []);
 
-  // Set up live preview for real-time updates
+  // Set up live preview for real-time updates using standard V3.0 pattern
   useEffect(() => {
-    const handleLivePreviewUpdate = () => {
-      contentstackService.getAllMobilePhones()
-        .then(phones => {
-          setMobilePhones(phones);
-          console.log('📱 Live Preview: Phone list updated');
-        })
-        .catch(err => console.error('Live Preview update failed:', err));
+    const updateData = async () => {
+      try {
+        const phones = await contentstackService.getAllMobilePhones();
+        setMobilePhones(phones);
+      } catch (err) {
+        console.error('Live Preview update failed:', err);
+      }
     };
 
-    onEntryChange(handleLivePreviewUpdate);
+    onEntryChange(updateData);
   }, []);
 
   const handlePhoneSelect = (phone: MobilePhone) => {
@@ -172,9 +172,9 @@ const MobilePhoneList: React.FC = () => {
                     </div>
                     
                     <div className="phone-card-content">
-                      {phone.tags && phone.tags.length > 0 && (
+                      {phone.tags && (phone.tags as any[])?.length > 0 && (
                         <div className="phone-brand">
-                          {phone.tags[0]}
+                          {(phone.tags as any[])[0]}
                         </div>
                       )}
                       
@@ -189,32 +189,32 @@ const MobilePhoneList: React.FC = () => {
                         </p>
                       )}
                       
-                      {phone.variants && phone.variants.length > 0 && (
+                      {phone.variants && (phone.variants as any[])?.length > 0 && (
                         <div className="phone-pricing">
                           <span className="price-label">From</span>
-                          <span className="price-value">₹{phone.variants[0].price.toLocaleString('en-IN')}</span>
+                          <span className="price-value">₹{(phone.variants as any[])[0].price.toLocaleString('en-IN')}</span>
                         </div>
                       )}
 
                       <div className="phone-key-specs">
-                        {phone.specifications.cpu && (
+                        {(phone.specifications as any)?.cpu && (
                           <span className="key-spec">
-                            <strong>CPU:</strong> {phone.specifications.cpu}
+                            <strong>CPU:</strong> {(phone.specifications as any).cpu}
                           </span>
                         )}
-                        {phone.specifications.ram && (
+                        {(phone.specifications as any)?.ram && (
                           <span className="key-spec">
-                            <strong>RAM:</strong> {phone.specifications.ram}
+                            <strong>RAM:</strong> {(phone.specifications as any).ram}
                           </span>
                         )}
-                        {phone.specifications.storage && (
+                        {(phone.specifications as any)?.storage && (
                           <span className="key-spec">
-                            <strong>Storage:</strong> {phone.specifications.storage}
+                            <strong>Storage:</strong> {(phone.specifications as any).storage}
                           </span>
                         )}
-                        {phone.specifications.rear_camera && (
+                        {(phone.specifications as any)?.rear_camera && (
                           <span className="key-spec">
-                            <strong>Camera:</strong> {phone.specifications.rear_camera}
+                            <strong>Camera:</strong> {(phone.specifications as any).rear_camera}
                           </span>
                         )}
                       </div>
