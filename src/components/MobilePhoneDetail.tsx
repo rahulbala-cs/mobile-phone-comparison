@@ -4,7 +4,7 @@ import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
 import { Helmet } from 'react-helmet-async';
-import { getEditDataAttributes, onEntryChange } from '../utils/livePreview';
+import { getEditDataAttributes, onEntryChange, getContentTypeUid } from '../utils/livePreview';
 import './MobilePhoneDetail.css';
 
 const MobilePhoneDetail: React.FC = () => {
@@ -126,12 +126,12 @@ const MobilePhoneDetail: React.FC = () => {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="hero-section" {...getEditDataAttributes(mobilePhone.uid)}>
+      <section className="hero-section" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone))}>
         <div className="hero-container">
           <div className="hero-content">
             <div className="hero-text">
               {mobilePhone.tags && mobilePhone.tags.length > 0 && (
-                <div className="tags-container" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'tags')}>
+                <div className="tags-container" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'tags')}>
                   {mobilePhone.tags.map((tag, index) => (
                     <span key={index} className="tag">
                       {tag}
@@ -140,19 +140,19 @@ const MobilePhoneDetail: React.FC = () => {
                 </div>
               )}
               
-              <h1 className="hero-title" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'title')}>
+              <h1 className="hero-title" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'title')}>
                 {mobilePhone.title}
               </h1>
               
               {mobilePhone.description && (
-                <p className="hero-description" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'description')}>
+                <p className="hero-description" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'description')}>
                   {mobilePhone.description}
                 </p>
               )}
             </div>
             
             <div className="hero-image">
-              <div className="image-gallery" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'lead_image')}>
+              <div className="image-gallery" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'lead_image')}>
                 <div className="main-image-container">
                   <img
                     src={optimizedImageUrl}
@@ -189,7 +189,7 @@ const MobilePhoneDetail: React.FC = () => {
 
       {/* Pricing and Variants Section */}
       {mobilePhone.variants && mobilePhone.variants.length > 0 && (
-        <section className="pricing-section" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'variants')}>
+        <section className="pricing-section" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'variants')}>
           <div className="pricing-container">
             <h2 className="pricing-title">Pricing & Variants</h2>
             <p className="pricing-subtitle">Choose the variant that best fits your needs</p>
@@ -240,7 +240,7 @@ const MobilePhoneDetail: React.FC = () => {
       )}
 
       {/* Specifications Section */}
-      <section className="specifications-section" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'specifications')}>
+      <section className="specifications-section" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'specifications')}>
         <div className="specs-container">
           <h2 className="specs-title">Technical Specifications</h2>
           <p className="specs-subtitle">Detailed technical information about this device</p>
@@ -251,7 +251,9 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📱</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Display Resolution</h3>
-                  <p className="spec-value">{mobilePhone.specifications.display_resolution}</p>
+                  <p className="spec-value" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'specifications.display_resolution')}>
+                    {mobilePhone.specifications.display_resolution}
+                  </p>
                 </div>
               </div>
             )}
@@ -261,7 +263,9 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📏</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Screen-to-Body Ratio</h3>
-                  <p className="spec-value">{mobilePhone.specifications.screen_to_body_ratio}</p>
+                  <p className="spec-value" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'specifications.screen_to_body_ratio')}>
+                    {mobilePhone.specifications.screen_to_body_ratio}
+                  </p>
                 </div>
               </div>
             )}
@@ -271,7 +275,9 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🧠</div>
                 <div className="spec-content">
                   <h3 className="spec-label">RAM</h3>
-                  <p className="spec-value">{mobilePhone.specifications.ram}</p>
+                  <p className="spec-value" {...getEditDataAttributes(mobilePhone.uid, getContentTypeUid(mobilePhone), 'specifications.ram')}>
+                    {mobilePhone.specifications.ram}
+                  </p>
                 </div>
               </div>
             )}

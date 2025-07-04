@@ -6,7 +6,7 @@ import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
 import PhoneSelector from './PhoneSelector';
-import { getEditDataAttributes, onEntryChange } from '../utils/livePreview';
+import { getEditDataAttributes, onEntryChange, getContentTypeUid } from '../utils/livePreview';
 import './MobilePhoneComparison.css';
 
 const MobilePhoneComparison: React.FC = () => {
@@ -368,7 +368,7 @@ const MobilePhoneComparison: React.FC = () => {
                   </div>
                 )}
 
-                <div className="msp-product-image" {...getEditDataAttributes(phone.uid, 'mobiles', 'lead_image')}>
+                <div className="msp-product-image" {...getEditDataAttributes(phone.uid, getContentTypeUid(phone), 'lead_image')}>
                   <img
                     src={contentstackService.optimizeImage(phone.lead_image.url, {
                       width: 200,
@@ -381,7 +381,7 @@ const MobilePhoneComparison: React.FC = () => {
 
                 {index < phones.length - 1 && <div className="msp-vs-badge">VS</div>}
 
-                <h3 className="msp-product-title" {...getEditDataAttributes(phone.uid, 'mobiles', 'title')}>
+                <h3 className="msp-product-title" {...getEditDataAttributes(phone.uid, getContentTypeUid(phone), 'title')}>
                   {phone.title}
                 </h3>
 

@@ -23,24 +23,6 @@ function App() {
     <HelmetProvider>
       <Router>
         <div className="App">
-          {/* Live Preview indicator */}
-          {isLivePreviewEnabled() && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              background: '#ff4444',
-              color: 'white',
-              padding: '4px 8px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              zIndex: 9999,
-              borderBottomLeftRadius: '4px'
-            }}>
-              LIVE PREVIEW
-            </div>
-          )}
-          
           <HeaderNavigation />
           <main>
             <Routes>

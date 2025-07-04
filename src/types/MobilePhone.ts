@@ -86,6 +86,7 @@ export interface MobilePhone {
   updated_by?: string;
   locale: string;
   _version: number;
+  _content_type_uid?: string;
   publish_details?: {
     time: string;
     user: string;

@@ -88,15 +88,18 @@ class LivePreviewManager {
    */
   public getEditDataAttributes(
     entryUid: string,
-    contentTypeUid: string = 'mobiles',
+    contentTypeUid?: string,
     fieldPath?: string
   ): Record<string, string> {
     if (!this.config.enableEditTags) {
       return {};
     }
 
+    // Use the content type UID from entry data, fallback to mobiles content type UID
+    const actualContentTypeUid = contentTypeUid || 'blt6e248f3c32d25409';
+
     const baseAttributes = {
-      'data-cslp': `${entryUid}.${contentTypeUid}${fieldPath ? `.${fieldPath}` : ''}`,
+      'data-cslp': `${entryUid}.${actualContentTypeUid}${fieldPath ? `.${fieldPath}` : ''}`,
     };
 
     return baseAttributes;
@@ -120,6 +123,19 @@ class LivePreviewManager {
   public getPreviewToken(): string | undefined {
     return this.config.previewToken;
   }
+
+  /**
+   * Extract content type UID from entry data
+   */
+  public getContentTypeUid(entry: any): string {
+    // Try to get content type UID from entry metadata
+    if (entry._content_type_uid) {
+      return entry._content_type_uid;
+    }
+    
+    // Fallback to known mobiles content type UID
+    return 'blt6e248f3c32d25409';
+  }
 }
 
 // Create singleton instance
@@ -135,3 +151,4 @@ export const getEditDataAttributes = (entryUid: string, contentTypeUid?: string,
   livePreview.getEditDataAttributes(entryUid, contentTypeUid, fieldPath);
 export const isPreviewMode = () => livePreview.isPreviewMode();
 export const getPreviewToken = () => livePreview.getPreviewToken();
+export const getContentTypeUid = (entry: any) => livePreview.getContentTypeUid(entry);

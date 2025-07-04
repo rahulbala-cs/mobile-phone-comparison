@@ -96,28 +96,39 @@ This mobile phone comparison app now supports **Contentstack Live Preview** and 
 - **Methods**: Updated all query methods with `includeDrafts()`
 
 ### Data Attributes
-- **Format**: `data-cslp="{entry_uid}.{content_type}.{field_path}"`
+- **Format**: `data-cslp="{entry_uid}.{content_type_uid}.{field_path}"`
 - **Examples**:
-  - `data-cslp="blt123.mobiles.title"`
-  - `data-cslp="blt123.mobiles.specifications"`
-  - `data-cslp="blt123.mobiles.lead_image"`
+  - `data-cslp="bltffc3e218b0c94c4a.blt6e248f3c32d25409.title"`
+  - `data-cslp="bltffc3e218b0c94c4a.blt6e248f3c32d25409.specifications"`
+  - `data-cslp="bltffc3e218b0c94c4a.blt6e248f3c32d25409.lead_image"`
+
+**Important**: Uses actual content type UID (`blt6e248f3c32d25409`) not content type name (`mobiles`)
 
 ## 🐛 Troubleshooting
 
-1. **Live Preview not working**:
+1. **"Content Type 'xxx' was not found" Error**:
+   - ✅ **FIXED**: Updated data attributes to use correct content type UID (`blt6e248f3c32d25409`)
+   - Verify entry has `_content_type_uid` field in response
+   - Check that `getContentTypeUid()` function returns correct UID
+
+2. **Live Preview not working**:
    - Check environment variables are set correctly
    - Verify preview token has proper permissions
    - Ensure `REACT_APP_CONTENTSTACK_LIVE_PREVIEW=true`
 
-2. **Edit tags not visible**:
+3. **Edit tags not visible**:
    - Confirm `REACT_APP_CONTENTSTACK_LIVE_EDIT_TAGS=true`
    - Check if components have `data-cslp` attributes
    - Verify Visual Builder is enabled in Contentstack
 
-3. **Content not updating**:
+4. **Content not updating**:
    - Check browser console for Live Preview logs
    - Verify `onEntryChange` callbacks are registered
    - Ensure content type and field paths are correct
+
+5. **Visual Builder UI Issues**:
+   - ✅ **FIXED**: Removed unwanted "LIVE PREVIEW" indicator strip
+   - Ensure data attributes use correct format: `{entry_uid}.{content_type_uid}.{field_path}`
 
 ## 🎉 Ready for Production
 
