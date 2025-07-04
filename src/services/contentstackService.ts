@@ -1,5 +1,6 @@
 import * as Contentstack from 'contentstack';
 import { MobilePhone } from '../types/MobilePhone';
+import { isPreviewMode, getPreviewToken } from '../utils/livePreview';
 
 class ContentstackService {
   private stack: any;
@@ -13,8 +14,22 @@ class ContentstackService {
              process.env.REACT_APP_CONTENTSTACK_REGION === 'AZURE_NA' ? Contentstack.Region.AZURE_NA :
              process.env.REACT_APP_CONTENTSTACK_REGION === 'AZURE_EU' ? Contentstack.Region.AZURE_EU :
              process.env.REACT_APP_CONTENTSTACK_REGION === 'GCP_NA' ? Contentstack.Region.GCP_NA :
-             Contentstack.Region.US
+             Contentstack.Region.US,
+      live_preview: this.getLivePreviewConfig()
     });
+  }
+
+  // Configure live preview settings
+  private getLivePreviewConfig() {
+    if (!isPreviewMode() || !getPreviewToken()) {
+      return undefined;
+    }
+
+    return {
+      management_token: getPreviewToken()!,
+      enable: true,
+      host: process.env.REACT_APP_CONTENTSTACK_APP_HOST || 'app.contentstack.com',
+    };
   }
 
   // Fetch mobile phone by UID
@@ -22,8 +37,15 @@ class ContentstackService {
     try {
       console.log('Fetching mobile phone with UID:', uid);
       console.log('Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
+      console.log('Preview Mode:', isPreviewMode());
       
       const Query = this.stack.ContentType('mobiles').Entry(uid);
+      
+      // Enable preview mode if in live preview
+      if (isPreviewMode()) {
+        Query.includeDrafts();
+      }
+      
       const result = await Query.includeReference().toJSON().fetch();
       
       console.log('API Response:', result);
@@ -44,9 +66,16 @@ class ContentstackService {
     try {
       console.log('Fetching mobile phone with URL:', url);
       console.log('Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
+      console.log('Preview Mode:', isPreviewMode());
       
       const Query = this.stack.ContentType('mobiles').Query();
       Query.where('url', url);
+      
+      // Enable preview mode if in live preview
+      if (isPreviewMode()) {
+        Query.includeDrafts();
+      }
+      
       const result = await Query.includeReference().toJSON().find();
       
       console.log('API Response for URL:', result);
@@ -66,6 +95,12 @@ class ContentstackService {
   async getAllMobilePhones(): Promise<MobilePhone[]> {
     try {
       const Query = this.stack.ContentType('mobiles').Query();
+      
+      // Enable preview mode if in live preview
+      if (isPreviewMode()) {
+        Query.includeDrafts();
+      }
+      
       const result = await Query.includeReference().toJSON().find();
       
       return result[0] || [];
@@ -82,6 +117,12 @@ class ContentstackService {
       
       const Query = this.stack.ContentType('mobiles').Query();
       Query.containedIn('uid', uids);
+      
+      // Enable preview mode if in live preview
+      if (isPreviewMode()) {
+        Query.includeDrafts();
+      }
+      
       const result = await Query.includeReference().toJSON().find();
       
       return result[0] || [];

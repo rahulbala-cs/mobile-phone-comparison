@@ -4,6 +4,7 @@ import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
 import { Helmet } from 'react-helmet-async';
+import { getEditDataAttributes, onEntryChange } from '../utils/livePreview';
 import './MobilePhoneDetail.css';
 
 const MobilePhoneDetail: React.FC = () => {
@@ -44,6 +45,24 @@ const MobilePhoneDetail: React.FC = () => {
 
     fetchMobilePhone();
   }, [location.pathname]);
+
+  // Set up live preview for real-time updates
+  useEffect(() => {
+    const handleLivePreviewUpdate = () => {
+      if (mobilePhone) {
+        // Refetch data when content changes in live preview
+        const currentPath = location.pathname;
+        contentstackService.getMobilePhoneByURL(currentPath)
+          .then(phoneData => {
+            setMobilePhone(phoneData);
+            console.log('📱 Live Preview: Mobile phone data updated');
+          })
+          .catch(err => console.error('Live Preview update failed:', err));
+      }
+    };
+
+    onEntryChange(handleLivePreviewUpdate);
+  }, [mobilePhone, location.pathname]);
 
   if (loading) {
     return (
@@ -107,12 +126,12 @@ const MobilePhoneDetail: React.FC = () => {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="hero-section">
+      <section className="hero-section" {...getEditDataAttributes(mobilePhone.uid)}>
         <div className="hero-container">
           <div className="hero-content">
             <div className="hero-text">
               {mobilePhone.tags && mobilePhone.tags.length > 0 && (
-                <div className="tags-container">
+                <div className="tags-container" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'tags')}>
                   {mobilePhone.tags.map((tag, index) => (
                     <span key={index} className="tag">
                       {tag}
@@ -121,15 +140,19 @@ const MobilePhoneDetail: React.FC = () => {
                 </div>
               )}
               
-              <h1 className="hero-title">{mobilePhone.title}</h1>
+              <h1 className="hero-title" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'title')}>
+                {mobilePhone.title}
+              </h1>
               
               {mobilePhone.description && (
-                <p className="hero-description">{mobilePhone.description}</p>
+                <p className="hero-description" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'description')}>
+                  {mobilePhone.description}
+                </p>
               )}
             </div>
             
             <div className="hero-image">
-              <div className="image-gallery">
+              <div className="image-gallery" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'lead_image')}>
                 <div className="main-image-container">
                   <img
                     src={optimizedImageUrl}
@@ -166,7 +189,7 @@ const MobilePhoneDetail: React.FC = () => {
 
       {/* Pricing and Variants Section */}
       {mobilePhone.variants && mobilePhone.variants.length > 0 && (
-        <section className="pricing-section">
+        <section className="pricing-section" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'variants')}>
           <div className="pricing-container">
             <h2 className="pricing-title">Pricing & Variants</h2>
             <p className="pricing-subtitle">Choose the variant that best fits your needs</p>
@@ -217,7 +240,7 @@ const MobilePhoneDetail: React.FC = () => {
       )}
 
       {/* Specifications Section */}
-      <section className="specifications-section">
+      <section className="specifications-section" {...getEditDataAttributes(mobilePhone.uid, 'mobiles', 'specifications')}>
         <div className="specs-container">
           <h2 className="specs-title">Technical Specifications</h2>
           <p className="specs-subtitle">Detailed technical information about this device</p>

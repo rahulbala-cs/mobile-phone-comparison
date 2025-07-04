@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
+import { onEntryChange } from '../utils/livePreview';
 import './MobilePhoneList.css';
 
 const MobilePhoneList: React.FC = () => {
@@ -29,6 +30,20 @@ const MobilePhoneList: React.FC = () => {
     };
 
     fetchMobilePhones();
+  }, []);
+
+  // Set up live preview for real-time updates
+  useEffect(() => {
+    const handleLivePreviewUpdate = () => {
+      contentstackService.getAllMobilePhones()
+        .then(phones => {
+          setMobilePhones(phones);
+          console.log('📱 Live Preview: Phone list updated');
+        })
+        .catch(err => console.error('Live Preview update failed:', err));
+    };
+
+    onEntryChange(handleLivePreviewUpdate);
   }, []);
 
   const handlePhoneSelect = (phone: MobilePhone) => {
