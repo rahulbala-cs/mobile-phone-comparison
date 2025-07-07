@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        canvas { border: 2px solid #ddd; margin: 10px; background: white; border-radius: 5px; }
+        .preview { display: flex; align-items: center; gap: 20px; margin: 20px 0; }
+        .buttons { margin: 20px 0; }
+        button { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 5px; font-size: 14px; }
+        button:hover { background: #5a67d8; }
+        .download-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .instructions { background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Mobile Compare Favicon Generator</h1>
+        <p>Generate professional favicons for your mobile phone comparison app with the A/B design.</p>
+        
+        <div class="preview">
+            <div>
+                <h3>16x16 (Browser Tab)</h3>
+                <canvas id="canvas16" width="16" height="16"></canvas>
+            </div>
+            <div>
+                <h3>32x32 (Bookmark)</h3>
+                <canvas id="canvas32" width="32" height="32"></canvas>
+            </div>
+            <div>
+                <h3>48x48 (Desktop)</h3>
+                <canvas id="canvas48" width="48" height="48"></canvas>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button onclick="generateFavicons()">🎨 Generate Favicons</button>
+            <button onclick="downloadAll()">💾 Download All Sizes</button>
+            <button onclick="copyDataUrl()">📋 Copy Data URL</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click "Generate Favicons" to create the icons</li>
+                <li>Right-click each canvas and "Save image as..." to save PNG files</li>
+                <li>Replace the existing favicon.ico in your public folder</li>
+                <li>For data URL approach, click "Copy Data URL" and replace favicon reference in HTML</li>
+            </ol>
+        </div>
+        
+        <div class="download-section" id="downloads" style="display:none;">
+            <h3>📥 Download Links:</h3>
+            <div id="downloadLinks"></div>
+        </div>
+    </div>
+
+    <script>
+        function drawFavicon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 32; // Base design is 32x32
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Phone background
+            ctx.fillStyle = '#6B7280';
+            ctx.fillRect(4*scale, 2*scale, 24*scale, 28*scale);
+            
+            // Phone inner
+            ctx.fillStyle = '#E5E7EB';
+            ctx.fillRect(6*scale, 4*scale, 20*scale, 24*scale);
+            
+            // Screen
+            ctx.fillStyle = '#F9FAFB';
+            ctx.fillRect(7*scale, 6*scale, 18*scale, 16*scale);
+            
+            // Notch
+            ctx.fillStyle = '#9CA3AF';
+            ctx.fillRect(12*scale, 4*scale, 8*scale, 2*scale);
+            
+            // Home button
+            ctx.fillStyle = '#9CA3AF';
+            ctx.beginPath();
+            ctx.arc(16*scale, 26*scale, 1.5*scale, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // A label (Green)
+            ctx.fillStyle = '#10B981';
+            ctx.fillRect(8*scale, 10*scale, 6*scale, 6*scale);
+            
+            // B label (Red)  
+            ctx.fillStyle = '#EF4444';
+            ctx.fillRect(18*scale, 10*scale, 6*scale, 6*scale);
+            
+            // Text labels
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${Math.max(3*scale, 8)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Only show letters if size is big enough
+            if (size >= 24) {
+                ctx.fillText('A', 11*scale, 13*scale);
+                ctx.fillText('B', 21*scale, 13*scale);
+            }
+        }
+        
+        function generateFavicons() {
+            const canvas16 = document.getElementById('canvas16');
+            const canvas32 = document.getElementById('canvas32');
+            const canvas48 = document.getElementById('canvas48');
+            
+            drawFavicon(canvas16, 16);
+            drawFavicon(canvas32, 32);
+            drawFavicon(canvas48, 48);
+            
+            // Show download section
+            const downloads = document.getElementById('downloads');
+            downloads.style.display = 'block';
+            
+            // Create download links
+            const links = document.getElementById('downloadLinks');
+            links.innerHTML = `
+                <p><a href="${canvas16.toDataURL()}" download="favicon-16x16.png">📥 Download favicon-16x16.png</a></p>
+                <p><a href="${canvas32.toDataURL()}" download="favicon-32x32.png">📥 Download favicon-32x32.png</a></p>
+                <p><a href="${canvas48.toDataURL()}" download="favicon-48x48.png">📥 Download favicon-48x48.png</a></p>
+                <hr>
+                <p><strong>Data URL for HTML:</strong></p>
+                <textarea style="width:100%; height:60px; font-family:monospace; font-size:12px;" readonly>${canvas32.toDataURL()}</textarea>
+            `;
+        }
+        
+        function downloadAll() {
+            generateFavicons();
+            
+            // Trigger downloads
+            setTimeout(() => {
+                const canvas16 = document.getElementById('canvas16');
+                const canvas32 = document.getElementById('canvas32');
+                const canvas48 = document.getElementById('canvas48');
+                
+                [
+                    {canvas: canvas16, name: 'favicon-16x16.png'},
+                    {canvas: canvas32, name: 'favicon-32x32.png'},
+                    {canvas: canvas48, name: 'favicon-48x48.png'}
+                ].forEach((item, index) => {
+                    setTimeout(() => {
+                        const link = document.createElement('a');
+                        link.download = item.name;
+                        link.href = item.canvas.toDataURL();
+                        link.click();
+                    }, index * 500);
+                });
+            }, 100);
+        }
+        
+        function copyDataUrl() {
+            generateFavicons();
+            const canvas32 = document.getElementById('canvas32');
+            const dataUrl = canvas32.toDataURL();
+            
+            navigator.clipboard.writeText(dataUrl).then(() => {
+                alert('Data URL copied to clipboard! You can now paste it in your HTML.');
+            });
+        }
+        
+        // Auto-generate on page load
+        window.onload = generateFavicons;
+    </script>
+</body>
+</html>
