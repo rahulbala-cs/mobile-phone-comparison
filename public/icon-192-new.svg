@@ -1,0 +1,25 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone Background -->
+  <rect x="24" y="12" width="144" height="168" rx="36" fill="#6B7280" />
+  <rect x="36" y="24" width="120" height="144" rx="24" fill="#E5E7EB" />
+  
+  <!-- Screen -->
+  <rect x="42" y="36" width="108" height="96" rx="12" fill="#F9FAFB" />
+  
+  <!-- Notch -->
+  <rect x="72" y="24" width="48" height="12" rx="6" fill="#9CA3AF" />
+  
+  <!-- Home Button -->
+  <circle cx="96" cy="156" r="9" fill="#9CA3AF" />
+  
+  <!-- A Label (Green) -->
+  <rect x="48" y="60" width="36" height="36" rx="12" fill="#10B981" />
+  <text x="66" y="83" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="24">A</text>
+  
+  <!-- B Label (Red) -->
+  <rect x="108" y="60" width="36" height="36" rx="12" fill="#EF4444" />
+  <text x="126" y="83" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="24">B</text>
+  
+  <!-- VS Text -->
+  <text x="96" y="120" text-anchor="middle" fill="#6B7280" font-family="Arial" font-weight="bold" font-size="14">VS</text>
+</svg>

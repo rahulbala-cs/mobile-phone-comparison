@@ -1,0 +1,34 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Phone Background -->
+  <rect x="64" y="32" width="384" height="448" rx="96" fill="#6B7280" />
+  <rect x="96" y="64" width="320" height="384" rx="64" fill="#E5E7EB" />
+  
+  <!-- Screen -->
+  <rect x="112" y="96" width="288" height="256" rx="32" fill="#F9FAFB" />
+  
+  <!-- Notch -->
+  <rect x="192" y="64" width="128" height="32" rx="16" fill="#9CA3AF" />
+  
+  <!-- Home Button -->
+  <circle cx="256" cy="416" r="24" fill="#9CA3AF" />
+  
+  <!-- A Label (Green) -->
+  <rect x="128" y="160" width="96" height="96" rx="32" fill="#10B981" />
+  <text x="176" y="225" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="64">A</text>
+  
+  <!-- B Label (Red) -->
+  <rect x="288" y="160" width="96" height="96" rx="32" fill="#EF4444" />
+  <text x="336" y="225" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold" font-size="64">B</text>
+  
+  <!-- VS Text -->
+  <text x="256" y="320" text-anchor="middle" fill="#6B7280" font-family="Arial" font-weight="bold" font-size="36">VS</text>
+  
+  <!-- Small comparison indicators -->
+  <rect x="140" y="280" width="20" height="8" rx="2" fill="#10B981" opacity="0.6" />
+  <rect x="168" y="285" width="16" height="8" rx="2" fill="#10B981" opacity="0.4" />
+  <rect x="190" y="290" width="12" height="8" rx="2" fill="#10B981" opacity="0.3" />
+  
+  <rect x="350" y="280" width="20" height="8" rx="2" fill="#EF4444" opacity="0.6" />
+  <rect x="328" y="285" width="16" height="8" rx="2" fill="#EF4444" opacity="0.4" />
+  <rect x="310" y="290" width="12" height="8" rx="2" fill="#EF4444" opacity="0.3" />
+</svg>

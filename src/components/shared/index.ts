@@ -3,6 +3,7 @@ export { default as Card } from './Card';
 export { default as Button } from './Button';
 export { default as Badge } from './Badge';
 export { default as Logo } from './Logo';
+export { default as LogoAB } from './LogoAB';
 
 // Export types for external use
 export type { CardProps } from './Card';
