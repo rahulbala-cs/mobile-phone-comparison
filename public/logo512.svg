@@ -1,0 +1,49 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#gradient512)" />
+  
+  <!-- Phone 1 -->
+  <rect x="160" y="140" width="80" height="140" rx="12" fill="white" stroke="#667eea" stroke-width="4"/>
+  <circle cx="200" cy="165" r="6" fill="#667eea"/>
+  <rect x="170" y="180" width="60" height="80" rx="6" fill="#f8fafc"/>
+  <rect x="175" y="185" width="50" height="12" rx="2" fill="#e2e8f0"/>
+  <rect x="175" y="202" width="35" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="175" y="215" width="45" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="175" y="228" width="25" height="8" rx="2" fill="#cbd5e1"/>
+  
+  <!-- VS Text -->
+  <text x="256" y="245" text-anchor="middle" fill="white" font-family="Arial Black" font-weight="900" font-size="42">VS</text>
+  
+  <!-- Phone 2 -->
+  <rect x="272" y="140" width="80" height="140" rx="12" fill="white" stroke="#10b981" stroke-width="4"/>
+  <circle cx="312" cy="165" r="6" fill="#10b981"/>
+  <rect x="282" y="180" width="60" height="80" rx="6" fill="#f8fafc"/>
+  <rect x="287" y="185" width="50" height="12" rx="2" fill="#e2e8f0"/>
+  <rect x="287" y="202" width="40" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="287" y="215" width="35" height="8" rx="2" fill="#cbd5e1"/>
+  <rect x="287" y="228" width="50" height="8" rx="2" fill="#cbd5e1"/>
+  
+  <!-- Comparison Arrows -->
+  <path d="M130 200 L160 200 M150 185 L160 200 L150 215" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 200 L382 200 M372 185 L352 200 L372 215" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Stats/Charts at bottom -->
+  <rect x="180" y="340" width="12" height="60" rx="3" fill="white" opacity="0.8"/>
+  <rect x="200" y="330" width="12" height="70" rx="3" fill="white" opacity="0.9"/>
+  <rect x="220" y="320" width="12" height="80" rx="3" fill="white"/>
+  <rect x="240" y="335" width="12" height="65" rx="3" fill="white" opacity="0.8"/>
+  
+  <rect x="280" y="335" width="12" height="65" rx="3" fill="white" opacity="0.8"/>
+  <rect x="300" y="325" width="12" height="75" rx="3" fill="white" opacity="0.9"/>
+  <rect x="320" y="320" width="12" height="80" rx="3" fill="white"/>
+  <rect x="340" y="340" width="12" height="60" rx="3" fill="white" opacity="0.8"/>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="gradient512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

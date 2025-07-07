@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import contentstackService from '../services/contentstackService';
 import { FallbackHelper } from '../config/fallbacks';
+import { Logo } from './shared';
 import './HeaderNavigation.css';
 
 interface NavigationItem {
@@ -97,8 +98,7 @@ const HeaderNavigation: React.FC = () => {
       <div className="nav-container">
         <div className="nav-brand">
           <Link to="/" onClick={handleLinkClick}>
-            <span className="brand-icon">📱</span>
-            <span className="brand-text">Mobile Compare</span>
+            <Logo size="medium" variant="full" />
           </Link>
         </div>
 

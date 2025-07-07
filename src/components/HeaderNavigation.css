@@ -27,11 +27,7 @@
 .nav-brand a {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
   text-decoration: none;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1a202c;
   transition: all 0.3s ease;
 }
 
