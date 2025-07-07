@@ -1,0 +1,165 @@
+/* Progress Indicator - Multi-step flow visualization */
+
+.progress-indicator {
+  margin-bottom: 2rem;
+}
+
+.progress-indicator__container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.progress-indicator__step-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.progress-indicator__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.progress-indicator__circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.progress-indicator__circle--completed {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.progress-indicator__circle--current {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+}
+
+.progress-indicator__circle--upcoming {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.progress-indicator__number {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.progress-indicator__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+}
+
+.progress-indicator__label--completed {
+  color: #10b981;
+}
+
+.progress-indicator__label--current {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.progress-indicator__label--upcoming {
+  color: #64748b;
+}
+
+.progress-indicator__connector {
+  height: 2px;
+  flex: 1;
+  margin: 0 1rem;
+  background: #e2e8f0;
+  transition: background-color 0.3s ease;
+  position: relative;
+  top: -20px; /* Align with circle centers */
+}
+
+.progress-indicator__connector--completed {
+  background: #10b981;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progress-indicator__container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .progress-indicator__circle {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .progress-indicator__number {
+    font-size: 0.75rem;
+  }
+  
+  .progress-indicator__label {
+    font-size: 0.75rem;
+  }
+  
+  .progress-indicator__connector {
+    margin: 0 0.5rem;
+    top: -16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-indicator__label {
+    display: none;
+  }
+  
+  .progress-indicator__connector {
+    margin: 0 0.25rem;
+  }
+  
+  .progress-indicator__circle {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .progress-indicator__circle--upcoming {
+    border-color: #64748b;
+  }
+  
+  .progress-indicator__connector {
+    background: #64748b;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .progress-indicator__circle {
+    transition: none;
+  }
+  
+  .progress-indicator__label {
+    transition: none;
+  }
+  
+  .progress-indicator__connector {
+    transition: none;
+  }
+}

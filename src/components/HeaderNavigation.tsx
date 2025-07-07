@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import contentstackService from '../services/contentstackService';
+import { FallbackHelper } from '../config/fallbacks';
 import './HeaderNavigation.css';
 
 interface NavigationItem {
@@ -223,12 +224,12 @@ const HeaderNavigation: React.FC = () => {
                       return (
                         <li key={subIndex} className="mobile-sub-item">
                           <Link
-                            to={subItem.sub_url || '#'}
+                            to={FallbackHelper.getNavigationUrl(subItem.sub_url, 'EMPTY_LINK')}
                             className="mobile-sub-link"
                             onClick={handleLinkClick}
                           >
                             {subItem.sub_icon && <span className="nav-icon">{subItem.sub_icon}</span>}
-                            {subItem.sub_label || 'Unnamed Item'}
+                            {FallbackHelper.getText(subItem.sub_label, 'UNNAMED_ITEM')}
                           </Link>
                         </li>
                       );

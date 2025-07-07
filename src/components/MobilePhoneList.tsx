@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
-import { onEntryChange } from '../utils/livePreview';
+import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
 import './MobilePhoneList.css';
 
 const MobilePhoneList: React.FC = () => {
@@ -32,7 +32,7 @@ const MobilePhoneList: React.FC = () => {
     fetchMobilePhones();
   }, []);
 
-  // Set up live preview for real-time updates using standard V3.0 pattern
+  // Set up Live Preview and Visual Builder for real-time updates using V3.0+ pattern
   useEffect(() => {
     const updateData = async () => {
       try {
@@ -43,7 +43,8 @@ const MobilePhoneList: React.FC = () => {
       }
     };
 
-    onEntryChange(updateData);
+    onEntryChange(updateData); // For Live Preview
+    onLiveEdit(updateData);    // For Visual Builder
   }, []);
 
   const handlePhoneSelect = (phone: MobilePhone) => {
@@ -147,7 +148,7 @@ const MobilePhoneList: React.FC = () => {
           </div>
         )}
         
-        <div className="phones-grid">
+        <div className={`phones-grid ${VB_EmptyBlockParentClass}`}>
           {mobilePhones.map((phone) => {
             const isSelected = selectedPhones.find(p => p.uid === phone.uid);
             const canSelect = selectedPhones.length < 4 || isSelected;
@@ -178,10 +179,10 @@ const MobilePhoneList: React.FC = () => {
                         </div>
                       )}
                       
-                      <h3 className="phone-card-title">{phone.title}</h3>
+                      <h3 className="phone-card-title" {...getEditAttributes(phone.title)}>{phone.title}</h3>
                       
                       {phone.description && (
-                        <p className="phone-card-description">
+                        <p className="phone-card-description" {...getEditAttributes(phone.description)}>
                           {phone.description.length > 100 
                             ? `${phone.description.substring(0, 100)}...` 
                             : phone.description
@@ -192,29 +193,29 @@ const MobilePhoneList: React.FC = () => {
                       {phone.variants && (phone.variants as any[])?.length > 0 && (
                         <div className="phone-pricing">
                           <span className="price-label">From</span>
-                          <span className="price-value">₹{(phone.variants as any[])[0].price.toLocaleString('en-IN')}</span>
+                          <span className="price-value" {...getEditAttributes((phone.variants as any[])[0]?.price)}>₹{(phone.variants as any[])[0].price.toLocaleString('en-IN')}</span>
                         </div>
                       )}
 
                       <div className="phone-key-specs">
                         {(phone.specifications as any)?.cpu && (
                           <span className="key-spec">
-                            <strong>CPU:</strong> {(phone.specifications as any).cpu}
+                            <strong>CPU:</strong> <span {...getEditAttributes((phone.specifications as any)?.cpu)}>{(phone.specifications as any).cpu}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.ram && (
                           <span className="key-spec">
-                            <strong>RAM:</strong> {(phone.specifications as any).ram}
+                            <strong>RAM:</strong> <span {...getEditAttributes((phone.specifications as any)?.ram)}>{(phone.specifications as any).ram}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.storage && (
                           <span className="key-spec">
-                            <strong>Storage:</strong> {(phone.specifications as any).storage}
+                            <strong>Storage:</strong> <span {...getEditAttributes((phone.specifications as any)?.storage)}>{(phone.specifications as any).storage}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.rear_camera && (
                           <span className="key-spec">
-                            <strong>Camera:</strong> {(phone.specifications as any).rear_camera}
+                            <strong>Camera:</strong> <span {...getEditAttributes((phone.specifications as any)?.rear_camera)}>{(phone.specifications as any).rear_camera}</span>
                           </span>
                         )}
                       </div>

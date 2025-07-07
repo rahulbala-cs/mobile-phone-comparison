@@ -1,0 +1,18 @@
+/* Home Page - Main landing page styles */
+
+.home-page {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Smooth scrolling for internal navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global improvements for the home page experience */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

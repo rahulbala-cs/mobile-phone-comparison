@@ -5,7 +5,7 @@ import { X, ShoppingCart, Eye, Plus } from 'lucide-react';
 import { MobilePhone, getFieldValue } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
-import { onEntryChange } from '../utils/livePreview';
+import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
 import PhoneSelector from './PhoneSelector';
 import './MobilePhoneComparison.css';
 
@@ -89,9 +89,10 @@ const MobilePhoneComparison: React.FC = () => {
     loadComparison();
   }, [loadComparison]);
 
-  // Set up Live Preview using standard V3.0 pattern
+  // Set up Live Preview and Visual Builder using V3.0+ pattern
   useEffect(() => {
-    onEntryChange(loadComparison);
+    onEntryChange(loadComparison); // For Live Preview
+    onLiveEdit(loadComparison);    // For Visual Builder
   }, [loadComparison]);
 
   const removePhone = (index: number) => {
@@ -304,7 +305,7 @@ const MobilePhoneComparison: React.FC = () => {
       )}
 
       {/* Product Cards */}
-      <div className="msp-product-cards">
+      <div className={`msp-product-cards ${VB_EmptyBlockParentClass}`}>
         {phones.map((phone, index) => (
           <div key={index} className="msp-product-card">
             {phone ? (
@@ -331,7 +332,7 @@ const MobilePhoneComparison: React.FC = () => {
                   )}
                 </div>
 
-                <h3 className="msp-product-title">
+                <h3 className="msp-product-title" {...getEditAttributes(phone.title)}>
                   {getFieldValue(phone.title)}
                 </h3>
 
@@ -339,7 +340,7 @@ const MobilePhoneComparison: React.FC = () => {
                   {getPrice(phone) && (
                     <>
                       <span className="msp-starts-from">Starts from</span>
-                      <div className="msp-price-amount">
+                      <div className="msp-price-amount" {...getEditAttributes(phone.variants?.[0]?.price)}>
                         <span className="msp-currency">₹</span>
                         <span className="msp-amount">{getPrice(phone)?.toLocaleString('en-IN')}</span>
                       </div>
@@ -389,7 +390,7 @@ const MobilePhoneComparison: React.FC = () => {
         </div>
 
         {/* Comparison Grid */}
-        <div className="msp-comparison-grid">
+        <div className={`msp-comparison-grid ${VB_EmptyBlockParentClass}`}>
           {/* Dynamic Specifications */}
           {filteredSpecs.map((spec) => (
             <React.Fragment key={spec.key}>
@@ -401,7 +402,7 @@ const MobilePhoneComparison: React.FC = () => {
                 >
                   {phone ? (
                     <div className="msp-spec-content">
-                      <span className="msp-spec-text">
+                      <span className="msp-spec-text" {...getEditAttributes(phone.specifications?.[spec.key as keyof typeof phone.specifications])}>
                         {(() => {
                           if (!phone.specifications) return 'N/A';
                           const specs = getFieldValue(phone.specifications);
@@ -425,7 +426,7 @@ const MobilePhoneComparison: React.FC = () => {
                 <div className="msp-price-comparison">
                   <div className="msp-price-item">
                     <ShoppingCart size={12} />
-                    <span>₹ {getPrice(phone)?.toLocaleString('en-IN')}</span>
+                    <span {...getEditAttributes(phone.variants?.[0]?.price)}>₹ {getPrice(phone)?.toLocaleString('en-IN')}</span>
                     <span className="msp-store-name">Starting Price</span>
                   </div>
                 </div>
@@ -441,7 +442,7 @@ const MobilePhoneComparison: React.FC = () => {
       {validPhones.length > 0 && (
         <section className="msp-media">
           <h2>Photos and Videos</h2>
-          <div className="msp-media-grid">
+          <div className={`msp-media-grid ${VB_EmptyBlockParentClass}`}>
             {phones.map((phone, index) => (
               phone && (
                 <div key={phone.uid} className="msp-media-item">
@@ -466,7 +467,7 @@ const MobilePhoneComparison: React.FC = () => {
                       <span>{getImageCount(phone)} PHOTOS</span>
                     </div>
                   </div>
-                  <h4 className="msp-media-title">{getFieldValue(phone.title)}</h4>
+                  <h4 className="msp-media-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h4>
                 </div>
               )
             ))}

@@ -1,0 +1,211 @@
+/* Error Boundary Styles */
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.error-boundary__container {
+  text-align: center;
+  max-width: 500px;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.error-boundary__icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-boundary__title {
+  color: #dc2626;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.error-boundary__message {
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.error-boundary__details {
+  text-align: left;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.error-boundary__summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.error-boundary__error-text,
+.error-boundary__stack-trace {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem;
+  color: #dc2626;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background-color: #fef2f2;
+  border-radius: 4px;
+}
+
+.error-boundary__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-boundary__button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.error-boundary__button--primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.error-boundary__button--primary:hover {
+  background-color: #1d4ed8;
+}
+
+.error-boundary__button--secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.error-boundary__button--secondary:hover {
+  background-color: #e5e7eb;
+}
+
+/* CMS Error Boundary Styles */
+.cms-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 1.5rem;
+  background-color: #fef3c7;
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+}
+
+.cms-error__container {
+  text-align: center;
+  max-width: 400px;
+}
+
+.cms-error__icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.cms-error__title {
+  color: #92400e;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.cms-error__message {
+  color: #a16207;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.cms-error__retry-button {
+  padding: 0.5rem 1rem;
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.cms-error__retry-button:hover {
+  background-color: #d97706;
+}
+
+/* Live Preview Error Boundary Styles */
+.live-preview-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border-radius: 6px;
+  border: 1px solid #fca5a5;
+  margin: 0.5rem 0;
+}
+
+.live-preview-error__container {
+  text-align: center;
+  max-width: 350px;
+}
+
+.live-preview-error__icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.live-preview-error__title {
+  color: #dc2626;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.live-preview-error__message {
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .error-boundary__container {
+    padding: 1.5rem;
+    margin: 0 1rem;
+  }
+  
+  .error-boundary__actions {
+    flex-direction: column;
+  }
+  
+  .error-boundary__button {
+    width: 100%;
+  }
+  
+  .cms-error__container {
+    padding: 0 1rem;
+  }
+}

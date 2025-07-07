@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MobilePhone } from '../types/MobilePhone';
 import { generateComparisonUrl } from '../utils/urlUtils';
 import { Helmet } from 'react-helmet-async';
-import { onEntryChange } from '../utils/livePreview';
+import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
 import contentstackService from '../services/contentstackService';
 import './MobilePhoneDetail.css';
 
@@ -73,9 +73,10 @@ const MobilePhoneDetail: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPath]);
 
-  // Set up Live Preview using standard V3.0 pattern
+  // Set up Live Preview and Visual Builder using V3.0+ pattern
   useEffect(() => {
-    onEntryChange(fetchMobilePhone);
+    onEntryChange(fetchMobilePhone); // For Live Preview
+    onLiveEdit(fetchMobilePhone);    // For Visual Builder
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,12 +155,12 @@ const MobilePhoneDetail: React.FC = () => {
                 </div>
               )}
               
-              <h1 className="hero-title">
+              <h1 className="hero-title" {...getEditAttributes(mobilePhone.title)}>
                 {typeof mobilePhone.title === 'string' ? mobilePhone.title : mobilePhone.title}
               </h1>
               
               {mobilePhone.description && (
-                <p className="hero-description">
+                <p className="hero-description" {...getEditAttributes(mobilePhone.description)}>
                   {typeof mobilePhone.description === 'string' ? mobilePhone.description : mobilePhone.description}
                 </p>
               )}
@@ -210,14 +211,14 @@ const MobilePhoneDetail: React.FC = () => {
             <h2 className="pricing-title">Pricing & Variants</h2>
             <p className="pricing-subtitle">Choose the variant that best fits your needs</p>
             
-            <div className="variants-grid">
+            <div className={`variants-grid ${VB_EmptyBlockParentClass}`}>
               {mobilePhone.variants.map((variant: any, index: number) => (
                 <div 
                   key={variant._metadata?.uid || index}
                   className="variant-card"
                 >
-                  <div className="variant-name">{variant.variant_name}</div>
-                  <div className="variant-price">₹{variant.price?.toLocaleString('en-IN')}</div>
+                  <div className="variant-name" {...getEditAttributes(variant.variant_name)}>{variant.variant_name}</div>
+                  <div className="variant-price" {...getEditAttributes(variant.price)}>₹{variant.price?.toLocaleString('en-IN')}</div>
                 </div>
               ))}
             </div>
@@ -264,13 +265,13 @@ const MobilePhoneDetail: React.FC = () => {
           <h2 className="specs-title">Technical Specifications</h2>
           <p className="specs-subtitle">Detailed technical information about this device</p>
           
-          <div className="specs-grid">
+          <div className={`specs-grid ${VB_EmptyBlockParentClass}`}>
             {mobilePhone.specifications?.display_resolution && (
               <div className="spec-card">
                 <div className="spec-icon">📱</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Display Resolution</h3>
-                  <p className="spec-value">{mobilePhone.specifications.display_resolution}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.display_resolution)}>{mobilePhone.specifications.display_resolution}</p>
                 </div>
               </div>
             )}
@@ -280,7 +281,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📏</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Screen-to-Body Ratio</h3>
-                  <p className="spec-value">{mobilePhone.specifications.screen_to_body_ratio}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.screen_to_body_ratio)}>{mobilePhone.specifications.screen_to_body_ratio}</p>
                 </div>
               </div>
             )}
@@ -290,7 +291,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🧠</div>
                 <div className="spec-content">
                   <h3 className="spec-label">RAM</h3>
-                  <p className="spec-value">{mobilePhone.specifications.ram}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.ram)}>{mobilePhone.specifications.ram}</p>
                 </div>
               </div>
             )}
@@ -300,7 +301,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">💾</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Storage</h3>
-                  <p className="spec-value">{mobilePhone.specifications.storage}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.storage)}>{mobilePhone.specifications.storage}</p>
                 </div>
               </div>
             )}
@@ -310,7 +311,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🔧</div>
                 <div className="spec-content">
                   <h3 className="spec-label">CPU</h3>
-                  <p className="spec-value">{mobilePhone.specifications.cpu}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.cpu)}>{mobilePhone.specifications.cpu}</p>
                 </div>
               </div>
             )}
@@ -320,7 +321,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🤳</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Front Camera</h3>
-                  <p className="spec-value">{mobilePhone.specifications.front_camera}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.front_camera)}>{mobilePhone.specifications.front_camera}</p>
                 </div>
               </div>
             )}
@@ -330,7 +331,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📷</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Rear Camera</h3>
-                  <p className="spec-value">{mobilePhone.specifications.rear_camera}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.rear_camera)}>{mobilePhone.specifications.rear_camera}</p>
                 </div>
               </div>
             )}
@@ -340,7 +341,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">⚖️</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Weight</h3>
-                  <p className="spec-value">{mobilePhone.specifications.weight}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.weight)}>{mobilePhone.specifications.weight}</p>
                 </div>
               </div>
             )}
@@ -350,7 +351,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🔋</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Battery</h3>
-                  <p className="spec-value">{mobilePhone.specifications.battery}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.battery)}>{mobilePhone.specifications.battery}</p>
                 </div>
               </div>
             )}
@@ -364,7 +365,7 @@ const MobilePhoneDetail: React.FC = () => {
           <div className="related-container">
             <h2 className="related-title">Related Phones</h2>
             <p className="related-subtitle">You might also be interested in these phones</p>
-            <div className="related-phones-grid">
+            <div className={`related-phones-grid ${VB_EmptyBlockParentClass}`}>
               {relatedPhones.map((relatedPhone) => (
                 <div key={relatedPhone.uid} className="related-phone-card">
                   <div className="related-phone-image">
@@ -379,7 +380,7 @@ const MobilePhoneDetail: React.FC = () => {
                     />
                   </div>
                   <div className="related-phone-content">
-                    <h3 className="related-phone-title">
+                    <h3 className="related-phone-title" {...getEditAttributes(relatedPhone.title)}>
                       {typeof relatedPhone.title === 'string' ? relatedPhone.title : relatedPhone.title}
                     </h3>
                     {relatedPhone.variants && Array.isArray(relatedPhone.variants) && relatedPhone.variants.length > 0 && (
