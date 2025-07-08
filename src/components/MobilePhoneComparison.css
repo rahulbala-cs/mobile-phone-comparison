@@ -351,6 +351,13 @@
   margin: 0;
 }
 
+.msp-section-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .msp-toggle {
   display: flex;
   align-items: center;

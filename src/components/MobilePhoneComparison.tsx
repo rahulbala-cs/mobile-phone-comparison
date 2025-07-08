@@ -7,6 +7,7 @@ import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
 import PhoneSelector from './PhoneSelector';
+import QuickSummarize from './QuickSummarize';
 import './MobilePhoneComparison.css';
 
 // Types for better type safety
@@ -379,14 +380,17 @@ const MobilePhoneComparison: React.FC = () => {
       <section className="msp-overview">
         <div className="msp-section-header">
           <h2>Overview</h2>
-          <label className="msp-toggle">
-            <input
-              type="checkbox"
-              checked={showOnlyDifferences}
-              onChange={(e) => setShowOnlyDifferences(e.target.checked)}
-            />
-            Show Only Differences
-          </label>
+          <div className="msp-section-controls">
+            <QuickSummarize phones={phones} />
+            <label className="msp-toggle">
+              <input
+                type="checkbox"
+                checked={showOnlyDifferences}
+                onChange={(e) => setShowOnlyDifferences(e.target.checked)}
+              />
+              Show Only Differences
+            </label>
+          </div>
         </div>
 
         {/* Comparison Grid */}
