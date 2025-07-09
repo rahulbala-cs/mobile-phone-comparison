@@ -1,57 +1,69 @@
-/* Mobile Phone List Styles */
+/* Clean Minimalistic Mobile Phone List */
 .mobile-phone-list {
   min-height: 100vh;
-  background: #f8fafc;
-  padding: 2rem 0;
+  background: #fafafa;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  /* Ensure container can expand beyond viewport */
+  height: auto;
 }
 
 .list-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* Ensure container can expand to fit all content */
+  min-height: fit-content;
+  width: 100%;
 }
 
 .list-title {
-  font-size: 3rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1rem;
-  color: #1a202c;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: left;
+  margin: 0;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
 }
 
 .list-subtitle {
-  font-size: 1.25rem;
-  text-align: center;
-  color: #64748b;
-  margin-bottom: 3rem;
+  font-size: 1rem;
+  text-align: left;
+  color: #666;
+  margin: 0;
+  font-weight: 400;
 }
 
-/* Comparison Bar */
+/* Clean Comparison Bar */
 .comparison-bar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
+  background: white;
+  border: 1px solid #e0e0e0;
+  color: #333;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
+
 
 .selected-phones {
   flex: 1;
 }
 
 .selection-text {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   margin-bottom: 0.5rem;
   display: block;
+  color: #666;
 }
 
 .selected-phones-list {
@@ -61,31 +73,36 @@
 }
 
 .selected-phone-item {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  background: #f5f5f5;
+  color: #333;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  backdrop-filter: blur(10px);
+  font-size: 0.875rem;
+  border: 1px solid #e0e0e0;
 }
 
+
 .remove-btn {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f0f0f0;
   border: none;
-  color: white;
-  width: 20px;
-  height: 20px;
+  color: #666;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
+  transition: all 0.2s ease;
 }
 
 .remove-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: #e0e0e0;
+  color: #333;
 }
 
 .comparison-actions {
@@ -96,42 +113,52 @@
 .compare-btn, .clear-btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
 }
 
 .compare-btn {
-  background: white;
-  color: #667eea;
+  background: #2563eb;
+  color: white;
+  border: none;
 }
 
 .compare-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: #94a3b8;
 }
 
-.compare-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
 
 .clear-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #666;
+  border: 1px solid #d0d0d0;
 }
 
 .clear-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f5f5f5;
+  border-color: #999;
 }
+
 
 .phones-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  /* REMOVED: overflow: hidden !important; - This was causing truncation */
+  align-content: start;
+  min-height: fit-content;
+  width: 100%;
+  box-sizing: border-box;
+  /* Enable natural grid expansion */
+  grid-auto-rows: minmax(auto, max-content);
 }
+
+
 
 .phone-card-wrapper {
   position: relative;
@@ -144,72 +171,78 @@
 
 .phone-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Ensure consistent card heights */
+  height: fit-content;
+  min-height: 400px;
 }
 
+
 .phone-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #2563eb;
 }
 
 .phone-card.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e0edff 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+  border-color: #2563eb;
+  background: #f8faff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
-/* Selection Overlay */
+/* Clean Selection Overlay */
 .selection-overlay {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.75rem;
+  right: 0.75rem;
   z-index: 10;
 }
 
 .selection-checkbox {
-  width: 32px;
-  height: 32px;
-  border: 2px solid #d1d5db;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #d0d0d0;
   background: white;
-  border-radius: 50%;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .selection-checkbox:hover:not(.disabled) {
-  border-color: #667eea;
-  background: #f0f4ff;
-  transform: scale(1.1);
+  border-color: #2563eb;
+  background: #f8faff;
 }
 
 .selection-checkbox.checked {
-  background: #667eea;
-  border-color: #667eea;
+  background: #2563eb;
+  border-color: #2563eb;
   color: white;
 }
 
 .selection-checkbox.disabled {
-  opacity: 0.3;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .phone-image-container {
   position: relative;
-  height: 240px;
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  height: 180px;
+  background: #f9f9f9;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,10 +250,10 @@
 }
 
 .phone-card-image {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 80%;
+  max-height: 80%;
   object-fit: contain;
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
 .phone-card:hover .phone-card-image {
@@ -228,71 +261,78 @@
 }
 
 .phone-card-content {
-  padding: 1.5rem;
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.5rem;
 }
 
 .phone-brand {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #667eea;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #2563eb;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.02em;
   margin-bottom: 0.5rem;
 }
 
 .phone-card-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
   line-height: 1.3;
 }
 
 .phone-card-description {
   font-size: 0.875rem;
-  color: #64748b;
+  color: #666;
   line-height: 1.5;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .phone-pricing {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .price-label {
-  font-size: 0.875rem;
-  color: #64748b;
+  font-size: 0.75rem;
+  color: #666;
   font-weight: 500;
 }
 
 .price-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #667eea;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .phone-key-specs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.375rem;
 }
 
 .key-spec {
   font-size: 0.75rem;
-  background: #f1f5f9;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  color: #475569;
+  background: #f5f5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: #666;
+  border: 1px solid #e0e0e0;
 }
 
 .key-spec strong {
-  color: #334155;
+  color: #333;
+  font-weight: 500;
 }
 
-/* Loading, Error, and Empty States */
+/* Clean Loading, Error, and Empty States */
 .loading-container, 
 .error-container, 
 .empty-container {
@@ -300,15 +340,17 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 50vh;
+  height: 100vh;
   text-align: center;
+  box-sizing: border-box;
+  padding: 2rem;
 }
 
 .loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e2e8f0;
-  border-top: 4px solid #667eea;
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #2563eb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -319,31 +361,48 @@
   100% { transform: rotate(360deg); }
 }
 
+.loading-container p {
+  color: #666;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
 .error-container h2,
 .empty-container h2 {
-  color: #dc2626;
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.error-container p,
+.empty-container p {
+  color: #666;
+  font-size: 1rem;
   margin-bottom: 1rem;
 }
 
 .error-container button {
-  background: #667eea;
+  background: #2563eb;
   color: white;
   border: none;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   margin-top: 1rem;
+  transition: all 0.2s ease;
 }
 
 .error-container button:hover {
-  background: #5a67d8;
+  background: #1d4ed8;
 }
 
-/* Responsive Design */
+/* Clean Responsive Design */
 @media (max-width: 768px) {
   .mobile-phone-list {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
   }
   
   .list-container {
@@ -351,31 +410,35 @@
   }
   
   .list-title {
-    font-size: 2rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
   }
   
   .list-subtitle {
-    font-size: 1rem;
-    margin-bottom: 2rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
   }
   
   .phones-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    /* Ensure tablet layout shows all cards */
+    min-height: fit-content;
   }
   
   .phone-image-container {
-    height: 200px;
+    height: 160px;
   }
   
   .phone-card-content {
-    padding: 1rem;
+    padding: 0.5rem;
   }
   
   .comparison-bar {
     flex-direction: column;
-    gap: 1rem;
-    padding: 1rem 1.5rem;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
   
   .comparison-actions {
@@ -384,20 +447,199 @@
   
   .compare-btn, .clear-btn {
     flex: 1;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .pagination-container {
+    margin: 0.75rem 0 0.25rem 0;
+  }
+  
+  .pagination-btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .pagination-number {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8rem;
+    min-width: 35px;
+  }
+  
+  .page-info {
+    margin-bottom: 0.25rem;
   }
 }
 
 @media (max-width: 480px) {
+  .mobile-phone-list {
+    padding: 0.25rem 0;
+  }
+  
   .list-title {
-    font-size: 1.75rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .list-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .phones-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.75rem;
+    /* Ensure mobile layout shows all cards */
+    min-height: fit-content;
   }
   
   .phone-image-container {
-    height: 180px;
+    height: 140px;
   }
   
   .phone-key-specs {
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
   }
+  
+  .phone-card-content {
+    padding: 0.5rem;
+  }
+  
+  .phone-card-title {
+    font-size: 1rem;
+  }
+  
+  .comparison-bar {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .selected-phone-item {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .pagination-container {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.5rem 0 0.25rem 0;
+  }
+  
+  .pagination-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .pagination-number {
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+    min-width: 30px;
+  }
+  
+  .page-info {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* Clean Focus Styles */
+.selection-checkbox:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.compare-btn:focus,
+.clear-btn:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Simple button hover effects */
+.compare-btn:not(:disabled):hover {
+  background: #1d4ed8;
+}
+
+.compare-btn:not(:disabled):active {
+  background: #1e40af;
+}
+
+/* Pagination Styles */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  /* Add subtle shadow for better visibility */
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d0d0d0;
+  background: white;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pagination-number {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d0d0d0;
+  background: white;
+  color: #666;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 40px;
+}
+
+.pagination-number:hover {
+  background: #f5f5f5;
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.pagination-number.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.page-info {
+  text-align: center;
+  color: #666;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+  /* Add visual emphasis for item count */
+  background: #f8faff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e0f2fe;
 }

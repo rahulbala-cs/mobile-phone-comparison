@@ -12,7 +12,10 @@ const MobilePhoneList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhones, setSelectedPhones] = useState<MobilePhone[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(9); // Show 9 items per page
 
+  // Fetch mobile phones data
   useEffect(() => {
     const fetchMobilePhones = async () => {
       try {
@@ -32,6 +35,25 @@ const MobilePhoneList: React.FC = () => {
     fetchMobilePhones();
   }, []);
 
+  // Exact items that fit in viewport
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      const width = window.innerWidth;
+      
+      if (width <= 480) {
+        setItemsPerPage(3); // 1x3 grid (exactly 3 items)
+      } else if (width <= 768) {
+        setItemsPerPage(6); // 2x3 grid (exactly 6 items)
+      } else {
+        setItemsPerPage(9); // 3x3 grid (exactly 9 items)
+      }
+    };
+
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
+
   // Set up Live Preview and Visual Builder for real-time updates using V3.0+ pattern
   useEffect(() => {
     const updateData = async () => {
@@ -47,6 +69,20 @@ const MobilePhoneList: React.FC = () => {
     onLiveEdit(updateData);    // For Visual Builder
   }, []);
 
+  // Pagination logic
+  const totalPages = Math.ceil(mobilePhones.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPhones = mobilePhones.slice(startIndex, endIndex);
+
+  // Reset to page 1 if current page is out of bounds after items per page change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
+  // Event handlers
   const handlePhoneSelect = (phone: MobilePhone) => {
     if (selectedPhones.find(p => p.uid === phone.uid)) {
       // Remove if already selected
@@ -68,6 +104,28 @@ const MobilePhoneList: React.FC = () => {
     setSelectedPhones([]);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of the phone list
+    const phoneList = document.querySelector('.phones-grid');
+    if (phoneList) {
+      phoneList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Early returns after all hooks
   if (loading) {
     return (
       <div className="loading-container">
@@ -102,7 +160,7 @@ const MobilePhoneList: React.FC = () => {
     <div className="mobile-phone-list">
       <div className="list-container">
         <h1 className="list-title">Mobile Phone Comparison</h1>
-        <p className="list-subtitle">Compare the latest mobile phones and their specifications</p>
+        <p className="list-subtitle">Compare the latest mobile phones and their specifications • {mobilePhones.length} phones available</p>
         
         {/* Comparison Bar */}
         {selectedPhones.length > 0 && (
@@ -148,8 +206,8 @@ const MobilePhoneList: React.FC = () => {
           </div>
         )}
         
-        <div className={`phones-grid ${VB_EmptyBlockParentClass}`}>
-          {mobilePhones.map((phone) => {
+        <div className="phones-grid">
+          {currentPhones.map((phone) => {
             const isSelected = selectedPhones.find(p => p.uid === phone.uid);
             const canSelect = selectedPhones.length < 4 || isSelected;
             
@@ -241,6 +299,44 @@ const MobilePhoneList: React.FC = () => {
               </div>
             );
           })}
+        </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="pagination-container">
+            <button 
+              className="pagination-btn pagination-prev"
+              onClick={handlePrevious}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            
+            <div className="pagination-numbers">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              className="pagination-btn pagination-next"
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
+        
+        {/* Page Info */}
+        <div className="page-info">
+          Showing {startIndex + 1}-{Math.min(endIndex, mobilePhones.length)} of {mobilePhones.length} phones
         </div>
       </div>
     </div>
