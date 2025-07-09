@@ -147,15 +147,18 @@
 
 .phones-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  /* REMOVED: overflow: hidden !important; - This was causing truncation */
+  /* Mobile-first: single column layout */
+  grid-template-columns: 1fr;
+  gap: 1rem;
   align-content: start;
   min-height: fit-content;
   width: 100%;
   box-sizing: border-box;
   /* Enable natural grid expansion */
   grid-auto-rows: minmax(auto, max-content);
+  /* Ensure consistent spacing */
+  padding: 0;
+  margin: 0;
 }
 
 
@@ -180,9 +183,12 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  /* Ensure consistent card heights */
+  /* Ensure consistent card heights and responsive behavior */
   height: fit-content;
-  min-height: 400px;
+  min-height: 380px;
+  /* Prevent cards from being too wide on small screens */
+  max-width: 100%;
+  width: 100%;
 }
 
 
@@ -399,46 +405,59 @@
   background: #1d4ed8;
 }
 
-/* Clean Responsive Design */
-@media (max-width: 768px) {
+/* Mobile-First Responsive Design */
+
+/* Small Mobile: 320px - 480px */
+@media (max-width: 480px) {
   .mobile-phone-list {
-    padding: 0.5rem 0;
+    padding: 0.5rem;
   }
   
   .list-container {
-    padding: 0 1rem;
+    padding: 0 0.5rem;
   }
   
   .list-title {
-    font-size: 1.5rem;
-    margin-bottom: 0.25rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
   }
   
   .list-subtitle {
     font-size: 0.875rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
   }
   
   .phones-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* Force single column on mobile */
+    grid-template-columns: 1fr;
     gap: 1rem;
-    /* Ensure tablet layout shows all cards */
-    min-height: fit-content;
+    /* Ensure cards take full width minus padding */
+    width: 100%;
   }
   
   .phone-image-container {
-    height: 160px;
+    height: 140px;
   }
   
   .phone-card-content {
-    padding: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .phone-card-title {
+    font-size: 1.1rem;
+    line-height: 1.3;
+  }
+  
+  .phone-card-description {
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
   
   .comparison-bar {
     flex-direction: column;
     gap: 0.75rem;
     padding: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
   }
   
   .comparison-actions {
@@ -447,100 +466,127 @@
   
   .compare-btn, .clear-btn {
     flex: 1;
-    padding: 0.5rem 1rem;
+    padding: 0.625rem 1rem;
     font-size: 0.875rem;
   }
   
   .pagination-container {
-    margin: 0.75rem 0 0.25rem 0;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
   
   .pagination-btn {
-    padding: 0.375rem 0.75rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
+    min-width: 44px; /* Touch target */
   }
   
   .pagination-number {
-    padding: 0.375rem 0.5rem;
+    padding: 0.5rem;
     font-size: 0.8rem;
-    min-width: 35px;
+    min-width: 44px; /* Touch target */
   }
   
   .page-info {
-    margin-bottom: 0.25rem;
+    margin: 0.5rem 0;
+    font-size: 0.8rem;
   }
 }
 
-@media (max-width: 480px) {
+/* Tablet: 481px - 768px */
+@media (min-width: 481px) and (max-width: 768px) {
   .mobile-phone-list {
-    padding: 0.25rem 0;
+    padding: 0.75rem;
+  }
+  
+  .list-container {
+    padding: 0 1rem;
   }
   
   .list-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
   }
   
   .list-subtitle {
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
   }
   
   .phones-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0.75rem;
-    /* Ensure mobile layout shows all cards */
-    min-height: fit-content;
+    /* Two columns on tablet */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
   }
   
   .phone-image-container {
-    height: 140px;
-  }
-  
-  .phone-key-specs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem;
+    height: 160px;
   }
   
   .phone-card-content {
-    padding: 0.5rem;
-  }
-  
-  .phone-card-title {
-    font-size: 1rem;
+    padding: 0.875rem;
   }
   
   .comparison-bar {
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .selected-phone-item {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+    flex-direction: row;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
   }
   
   .pagination-container {
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    margin: 0.5rem 0 0.25rem 0;
+    margin: 1rem 0;
   }
   
-  .pagination-btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+  .pagination-btn, .pagination-number {
+    min-width: 40px;
+  }
+}
+
+/* Desktop: 769px+ */
+@media (min-width: 769px) {
+  .mobile-phone-list {
+    padding: 1rem;
   }
   
-  .pagination-number {
-    padding: 0.25rem 0.375rem;
-    font-size: 0.75rem;
-    min-width: 30px;
+  .list-container {
+    padding: 0 1rem;
   }
   
-  .page-info {
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem;
+  .list-title {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .list-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .phones-grid {
+    /* Three columns on desktop */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .phone-image-container {
+    height: 180px;
+  }
+  
+  .phone-card-content {
+    padding: 1rem;
+  }
+  
+  .comparison-bar {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .pagination-container {
+    margin: 1.5rem 0;
   }
 }
 
