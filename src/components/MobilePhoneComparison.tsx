@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { X, ShoppingCart, Eye, Plus } from 'lucide-react';
@@ -6,6 +6,7 @@ import { MobilePhone, getFieldValue } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
+import { usePersonalize, usePageView, useComparisonTracking, usePhoneTracking } from '../hooks/usePersonalize';
 import PhoneSelector from './PhoneSelector';
 import QuickSummarize from './QuickSummarize';
 import './MobilePhoneComparison.css';
@@ -39,14 +40,37 @@ const MobilePhoneComparison: React.FC = () => {
     currentImage: 0
   });
 
-  // Main data fetching function
+  // Personalization hooks
+  const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
+  const { trackComparisonStarted, trackComparisonCompleted } = useComparisonTracking();
+  const { trackPhoneView } = usePhoneTracking();
+  
+  // Track comparison duration
+  const comparisonStartTime = useRef<number>(Date.now());
+  
+  // Track page view with dynamic title
+  const validPhones = phones.filter(phone => phone !== null) as MobilePhone[];
+  const pageTitle = validPhones.length > 0 
+    ? `Compare ${validPhones.map(p => p.title).join(' vs ')} - Mobile Compare`
+    : 'Mobile Phone Comparison - Mobile Compare';
+  
+  usePageView(
+    `/compare/${phonesParam || ''}`,
+    pageTitle,
+    { trackOnMount: true, trackOnChange: true }
+  );
+
+  // Main data fetching function with personalization support
   const loadComparison = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch all phones first
-      const allPhonesData = await contentstackService.getAllMobilePhones();
+      // Get variant parameter for personalization
+      const variantParam = getVariantParam();
+
+      // Fetch all phones first with personalization
+      const allPhonesData = await contentstackService.getAllMobilePhones(variantParam || undefined);
       setAllPhones(allPhonesData);
       
       if (phonesParam && allPhonesData.length > 0) {
@@ -61,6 +85,13 @@ const MobilePhoneComparison: React.FC = () => {
               if (index < 4) newPhones[index] = phone;
             });
             setPhones(newPhones);
+            
+            // Track comparison started with personalization
+            if (isPersonalizeReady && foundPhones.length >= 2) {
+              const phoneUids = foundPhones.filter(phone => phone !== null).map(phone => phone!.uid);
+              await trackComparisonStarted(phoneUids);
+              comparisonStartTime.current = Date.now();
+            }
           } else {
             setError({
               message: 'One or more phones not found',
@@ -83,7 +114,7 @@ const MobilePhoneComparison: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [phonesParam]);
+  }, [phonesParam, getVariantParam, isPersonalizeReady, trackComparisonStarted]);
 
   // Initial data fetch
   useEffect(() => {
@@ -96,6 +127,18 @@ const MobilePhoneComparison: React.FC = () => {
     onLiveEdit(loadComparison);    // For Visual Builder
   }, [loadComparison]);
 
+  // Track comparison completion on unmount
+  useEffect(() => {
+    return () => {
+      // Track comparison completion when component unmounts
+      if (isPersonalizeReady && validPhones.length >= 2) {
+        const duration = Date.now() - comparisonStartTime.current;
+        const phoneUids = validPhones.map(phone => phone.uid);
+        trackComparisonCompleted(phoneUids, duration);
+      }
+    };
+  }, [isPersonalizeReady, validPhones, trackComparisonCompleted]);
+
   const removePhone = (index: number) => {
     const newPhones = [...phones];
     newPhones[index] = null;
@@ -107,11 +150,29 @@ const MobilePhoneComparison: React.FC = () => {
     setShowPhoneSelector(true);
   };
 
-  const handlePhoneSelect = (phone: MobilePhone) => {
+  const handlePhoneSelect = async (phone: MobilePhone) => {
     if (selectingSlot !== null) {
       const newPhones = [...phones];
       newPhones[selectingSlot] = phone;
       setPhones(newPhones);
+      
+      // Track phone view and update personalization attributes
+      if (isPersonalizeReady) {
+        await trackPhoneView({
+          uid: phone.uid,
+          title: typeof phone.title === 'string' ? phone.title : String(phone.title),
+          brand: phone.taxonomies?.[0]?.term_uid || undefined,
+          price: phone.variants?.[0]?.price || undefined
+        });
+        
+        // If this creates a valid comparison (2+ phones), track it
+        const validNewPhones = newPhones.filter(p => p !== null) as MobilePhone[];
+        if (validNewPhones.length >= 2) {
+          const phoneUids = validNewPhones.map(p => p.uid);
+          await trackComparisonStarted(phoneUids);
+          comparisonStartTime.current = Date.now();
+        }
+      }
     }
     setShowPhoneSelector(false);
     setSelectingSlot(null);
@@ -300,8 +361,6 @@ const MobilePhoneComparison: React.FC = () => {
       return null;
     }
   }, []);
-
-  const validPhones = phones.filter(phone => phone !== null) as MobilePhone[];
 
   // Calculate dynamic grid layout based on phone count
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);

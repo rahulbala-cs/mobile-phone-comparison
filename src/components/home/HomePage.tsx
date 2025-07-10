@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HomePageContent, transformHomePageContent } from '../../types/HomePageContent';
 import contentstackService from '../../services/contentstackService';
 import { onEntryChange, onLiveEdit } from '../../utils/livePreview';
 import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
 import { AppError, ErrorHandler } from '../../types/errors';
+import { usePersonalize, usePageView, useComponentPersonalization } from '../../hooks/usePersonalize';
 import HeroSection from './HeroSection';
 import FeaturesGrid from './FeaturesGrid';
 import FeaturedComparisons from './FeaturedComparisons';
@@ -16,16 +17,51 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch home page content from Contentstack (memoized to prevent infinite re-renders)
+  // Personalization hooks
+  const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
+  const { trackComponentView } = useComponentPersonalization('HomePage');
+  
+  // Use refs to store stable references and prevent re-renders
+  const personalizationRef = useRef({ getVariantParam, isPersonalizeReady, trackComponentView });
+  const fetchingRef = useRef(false); // Prevent multiple simultaneous fetches
+  
+  // Update refs when personalization changes (but don't trigger re-renders)
+  personalizationRef.current = { getVariantParam, isPersonalizeReady, trackComponentView };
+  
+  // Track page view automatically
+  usePageView('/', 'Mobile Compare - Compare Smartphones Side-by-Side', {
+    trackOnMount: true,
+    trackOnChange: true
+  });
+
+  // Fetch home page content from Contentstack with personalization support
+  // Remove problematic dependencies to prevent infinite loop
   const fetchHomePageContent = useCallback(async () => {
+    // Prevent multiple simultaneous API calls
+    if (fetchingRef.current) {
+      console.log('🔄 Home page content fetch already in progress, skipping...');
+      return;
+    }
+    
     try {
+      fetchingRef.current = true;
       setLoading(true);
       setError(null);
       
-      const content = await contentstackService.getHomePageContent();
+      // Get variant parameter for personalization from stable ref
+      const { getVariantParam: getVariant, isPersonalizeReady: isReady, trackComponentView: trackView } = personalizationRef.current;
+      const variantParam = getVariant();
+      
+      const content = await contentstackService.getHomePageContent(variantParam || undefined);
       setHomePageContent(content);
       
       console.log('🏠 Home Page content loaded from CMS:', content);
+      
+      // Track component view with personalization info (using stable ref)
+      if (isReady) {
+        await trackView();
+      }
+      
     } catch (err: any) {
       // Handle specific error types
       if (err instanceof AppError) {
@@ -38,8 +74,9 @@ const HomePage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  }, []);
+  }, []); // Remove all dependencies that were causing the infinite loop
 
   // Initial data fetch
   useEffect(() => {
@@ -47,14 +84,23 @@ const HomePage: React.FC = () => {
   }, [fetchHomePageContent]);
 
   // Set up Live Preview and Visual Builder for real-time updates
+  // Use a stable reference to prevent re-registration on every render
+  const stableFetchRef = useRef(fetchHomePageContent);
+  stableFetchRef.current = fetchHomePageContent;
+  
   useEffect(() => {
+    // Create a stable wrapper function to prevent Live Preview listener churn
+    const handleContentUpdate = () => {
+      stableFetchRef.current();
+    };
+    
     // The onEntryChange and onLiveEdit functions may not return unsubscribe functions
     // They are event listeners that are handled internally by the Live Preview SDK
-    onEntryChange(fetchHomePageContent); // For Live Preview
-    onLiveEdit(fetchHomePageContent);    // For Visual Builder
+    onEntryChange(handleContentUpdate); // For Live Preview
+    onLiveEdit(handleContentUpdate);    // For Visual Builder
     
     // No explicit cleanup needed as these are handled by the SDK
-  }, [fetchHomePageContent]);
+  }, []); // Remove fetchHomePageContent dependency to prevent re-registration
 
   // Loading state
   if (loading) {

@@ -15,16 +15,151 @@ import {
   EditableTagsConfig, 
   ContentstackEntry
 } from '../types/EditableTags';
+import { 
+  PersonalizedContent, 
+  PersonalizedQuery, 
+  PersonalizedQueryResponse 
+} from '../types/Personalize';
+import { 
+  shouldPersonalizeContent, 
+  extractPersonalizationMetadata,
+  logPersonalizeEvent
+} from '../utils/personalizeUtils';
 
 class ContentstackService {
   private stack: Contentstack.Stack;
+  private personalizationEnabled: boolean = false;
 
   constructor() {
     // Use the SAME Stack instance as Live Preview Utils
     this.stack = createStack();
+    
+    // Check if personalization is enabled
+    this.personalizationEnabled = !!(
+      process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID
+    );
   }
 
   // Stack is now configured via createStack() function
+
+  // Set personalization variant parameters for queries - following official documentation
+  private addPersonalizationToQuery(query: any, variantParam?: string): any {
+    if (!this.personalizationEnabled || !variantParam) {
+      return query;
+    }
+
+    try {
+      // Import SDK to access static methods
+      const Personalize = require('@contentstack/personalize-edge-sdk');
+      
+      // Convert variant parameter to variant aliases (following official pattern)
+      const variantAliases = Personalize.variantParamToVariantAliases(variantParam);
+      
+      if (variantAliases && variantAliases.length > 0) {
+        // Use the variants method as per official documentation
+        const variantAlias = variantAliases.join(',');
+        query = query.variants(variantAlias);
+        logPersonalizeEvent('PERSONALIZATION_VARIANTS_ADDED', { variantParam, variantAliases });
+      }
+    } catch (error) {
+      logPersonalizeEvent('PERSONALIZATION_VARIANT_CONVERSION_FAILED', { variantParam, error }, 'error');
+      
+      // Fallback to old method if SDK methods are not available
+      try {
+        query.addParam('cs_personalize_variant', variantParam);
+        logPersonalizeEvent('PERSONALIZATION_PARAM_ADDED_FALLBACK', { variantParam });
+      } catch (fallbackError) {
+        logPersonalizeEvent('PERSONALIZATION_PARAM_FAILED', { variantParam, error: fallbackError }, 'error');
+      }
+    }
+
+    return query;
+  }
+
+  // Create personalized content wrapper
+  private createPersonalizedContent<T>(
+    content: T,
+    contentType: string,
+    variantParam?: string
+  ): PersonalizedContent<T> {
+    const metadata = extractPersonalizationMetadata(content);
+    
+    return {
+      content,
+      experienceUid: metadata.experienceUid,
+      variantUid: metadata.variantUid,
+      isPersonalized: metadata.isPersonalized,
+      metadata: metadata.isPersonalized ? {
+        experienceTitle: undefined, // Will be populated by SDK
+        variantTitle: undefined,    // Will be populated by SDK
+        timestamp: new Date().toISOString(),
+      } : undefined,
+    };
+  }
+
+  // Execute personalized query
+  private async executePersonalizedQuery<T>(
+    personalizedQuery: PersonalizedQuery
+  ): Promise<PersonalizedQueryResponse<T>> {
+    try {
+      const { contentType, uid, query: queryParams, variantParams } = personalizedQuery;
+      
+      let query: any;
+      
+      // Build query based on parameters
+      if (uid) {
+        query = this.stack.ContentType(contentType).Entry(uid);
+      } else {
+        query = this.stack.ContentType(contentType).Query();
+        
+        // Add any query parameters
+        if (queryParams) {
+          Object.entries(queryParams).forEach(([key, value]) => {
+            if (key === 'where' && typeof value === 'object') {
+              Object.entries(value).forEach(([whereKey, whereValue]) => {
+                query.where(whereKey, whereValue);
+              });
+            } else {
+              query.addParam(key, value);
+            }
+          });
+        }
+      }
+      
+      // Add personalization parameters
+      if (variantParams && Object.keys(variantParams).length > 0) {
+        Object.entries(variantParams).forEach(([key, value]) => {
+          query = this.addPersonalizationToQuery(query, value);
+        });
+      }
+      
+      // Execute query
+      const result = await query.includeReference().toJSON().fetch();
+      
+      // Create personalized response
+      const personalizedContent = this.createPersonalizedContent(
+        result,
+        contentType,
+        variantParams?.cs_personalize_variant
+      );
+      
+      return {
+        content: personalizedContent.content,
+        personalization: personalizedContent.isPersonalized ? {
+          experienceUid: personalizedContent.experienceUid!,
+          variantUid: personalizedContent.variantUid!,
+          isPersonalized: true,
+        } : undefined,
+      };
+      
+    } catch (error: any) {
+      logPersonalizeEvent('PERSONALIZED_QUERY_FAILED', { 
+        personalizedQuery, 
+        error: error.message 
+      }, 'error');
+      throw error;
+    }
+  }
 
   // Add editable tags for Visual Builder with proper type safety
   private addEditableTagsToEntry(entry: ContentstackEntry, contentTypeUid: string): MobilePhone {
@@ -79,11 +214,33 @@ class ContentstackService {
     }
   }
 
-  // Fetch mobile phone by UID
-  async getMobilePhoneByUID(uid: string): Promise<MobilePhone> {
+  // Fetch mobile phone by UID with personalization support
+  async getMobilePhoneByUID(uid: string, variantParam?: string): Promise<MobilePhone> {
     try {
-      const Query = this.stack.ContentType('mobiles').Entry(uid);
-      const result = await Query.includeReference().toJSON().fetch();
+      let entryCall = this.stack.ContentType('mobiles').Entry(uid);
+      
+      let result;
+      // Follow official documentation pattern for variant fetching
+      if (variantParam && shouldPersonalizeContent('mobiles')) {
+        try {
+          // Import SDK to access static methods
+          const Personalize = require('@contentstack/personalize-edge-sdk');
+          const variantAliases = Personalize.variantParamToVariantAliases(variantParam);
+          
+          if (variantAliases && variantAliases.length > 0) {
+            const variantAlias = variantAliases.join(',');
+            result = await entryCall.variants(variantAlias).includeReference().toJSON().fetch();
+          } else {
+            result = await entryCall.includeReference().toJSON().fetch();
+          }
+        } catch (error) {
+          // Fallback to regular fetch if variant fetching fails
+          logPersonalizeEvent('VARIANT_FETCH_FALLBACK', { uid, variantParam, error }, 'warn');
+          result = await entryCall.includeReference().toJSON().fetch();
+        }
+      } else {
+        result = await entryCall.includeReference().toJSON().fetch();
+      }
       
       if (!result) {
         throw ErrorFactory.contentNotFound('Mobile Phone', uid, { contentType: 'mobiles' });
@@ -111,11 +268,16 @@ class ContentstackService {
     }
   }
 
-  // Fetch mobile phone by URL field
-  async getMobilePhoneByURL(url: string): Promise<MobilePhone> {
+  // Fetch mobile phone by URL field with personalization support
+  async getMobilePhoneByURL(url: string, variantParam?: string): Promise<MobilePhone> {
     try {
-      const Query = this.stack.ContentType('mobiles').Query();
+      let Query = this.stack.ContentType('mobiles').Query();
       Query.where('url', url);
+      
+      // Add personalization parameters if provided
+      if (variantParam && shouldPersonalizeContent('mobiles')) {
+        Query = this.addPersonalizationToQuery(Query, variantParam);
+      }
       
       const result = await Query.includeReference().toJSON().find();
       
@@ -166,10 +328,16 @@ class ContentstackService {
     }
   }
 
-  // Fetch all mobile phones
-  async getAllMobilePhones(): Promise<MobilePhone[]> {
+  // Fetch all mobile phones with personalization support
+  async getAllMobilePhones(variantParam?: string): Promise<MobilePhone[]> {
     try {
-      const Query = this.stack.ContentType('mobiles').Query();
+      let Query = this.stack.ContentType('mobiles').Query();
+      
+      // Add personalization parameters if provided
+      if (variantParam && shouldPersonalizeContent('mobiles')) {
+        Query = this.addPersonalizationToQuery(Query, variantParam);
+      }
+      
       const result = await Query.includeReference().toJSON().find();
       
       if (!result || !Array.isArray(result) || result.length === 0) {
@@ -294,15 +462,40 @@ class ContentstackService {
     }
   }
 
-  // Fetch Home Page content from Contentstack
-  async getHomePageContent(): Promise<HomePageContent> {
+  // Fetch Home Page content from Contentstack with personalization support
+  async getHomePageContent(variantParam?: string): Promise<HomePageContent> {
     try {
       console.log('📄 Fetching Home Page content from Contentstack');
       console.log('🔧 Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
       console.log('🔧 Preview mode:', process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW);
+      if (variantParam) {
+        console.log('🎯 Personalization variant:', variantParam);
+      }
       
-      const Query = this.stack.ContentType('home_page').Query();
-      const result = await Query.toJSON().find();
+      let entryCall = this.stack.ContentType('home_page').Query();
+      
+      let result;
+      // Follow official documentation pattern for variant fetching
+      if (variantParam && shouldPersonalizeContent('home_page')) {
+        try {
+          // Import SDK to access static methods
+          const Personalize = require('@contentstack/personalize-edge-sdk');
+          const variantAliases = Personalize.variantParamToVariantAliases(variantParam);
+          
+          if (variantAliases && variantAliases.length > 0) {
+            const variantAlias = variantAliases.join(',');
+            result = await entryCall.variants(variantAlias).toJSON().find();
+          } else {
+            result = await entryCall.toJSON().find();
+          }
+        } catch (error) {
+          // Fallback to regular fetch if variant fetching fails
+          logPersonalizeEvent('HOME_PAGE_VARIANT_FETCH_FALLBACK', { variantParam, error }, 'warn');
+          result = await entryCall.toJSON().find();
+        }
+      } else {
+        result = await entryCall.toJSON().find();
+      }
       
       // Validate the raw Contentstack response
       const responseValidation = validateContentstackResponse(result);
@@ -367,6 +560,177 @@ class ContentstackService {
 
     const separator = imageUrl.includes('?') ? '&' : '?';
     return `${imageUrl}${separator}${params.toString()}`;
+  }
+
+  // Personalized content methods
+  
+  // Get personalized mobile phone recommendations
+  async getPersonalizedMobilePhoneRecommendations(
+    userAttributes: Record<string, any>,
+    variantParam?: string,
+    limit: number = 10
+  ): Promise<MobilePhone[]> {
+    try {
+      let Query = this.stack.ContentType('mobiles').Query();
+      
+      // Add personalization parameters
+      if (variantParam && shouldPersonalizeContent('mobiles')) {
+        Query = this.addPersonalizationToQuery(Query, variantParam);
+      }
+      
+      // Apply user-based filtering (simplified for Contentstack SDK compatibility)
+      if (userAttributes.preferredBrand) {
+        // Note: This would require proper taxonomy filtering in a real implementation
+        console.log('Filtering by preferred brand:', userAttributes.preferredBrand);
+      }
+      
+      Query.limit(limit);
+      Query.descending('updated_at');
+      
+      const result = await Query.includeReference().toJSON().find();
+      
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return [];
+      }
+      
+      const phones = Array.isArray(result[0]) ? result[0] : [];
+      
+      logPersonalizeEvent('PERSONALIZED_RECOMMENDATIONS_FETCHED', {
+        userAttributes,
+        variantParam,
+        count: phones.length
+      });
+      
+      return phones.map((phone: any) => this.addEditableTagsToEntry(phone, 'mobiles'));
+    } catch (error: any) {
+      console.error('Error fetching personalized mobile phone recommendations:', error);
+      
+      // Fallback to regular recommendations
+      return this.getAllMobilePhones(variantParam);
+    }
+  }
+  
+  // Get personalized featured comparisons
+  async getPersonalizedFeaturedComparisons(
+    userAttributes: Record<string, any>,
+    variantParam?: string
+  ): Promise<any[]> {
+    try {
+      let Query = this.stack.ContentType('featured_comparisons').Query();
+      
+      // Add personalization parameters
+      if (variantParam && shouldPersonalizeContent('featured_comparisons')) {
+        Query = this.addPersonalizationToQuery(Query, variantParam);
+      }
+      
+      // Apply user-based filtering (simplified for Contentstack SDK compatibility)
+      if (userAttributes.preferredBrand) {
+        console.log('Filtering featured comparisons by preferred brand:', userAttributes.preferredBrand);
+      }
+      
+      if (userAttributes.priceRange) {
+        console.log('Filtering featured comparisons by price range:', userAttributes.priceRange);
+      }
+      
+      Query.limit(6);
+      Query.descending('updated_at');
+      
+      const result = await Query.includeReference().toJSON().find();
+      
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return [];
+      }
+      
+      logPersonalizeEvent('PERSONALIZED_FEATURED_COMPARISONS_FETCHED', {
+        userAttributes,
+        variantParam,
+        count: result[0]?.length || 0
+      });
+      
+      return result[0] || [];
+    } catch (error: any) {
+      console.error('Error fetching personalized featured comparisons:', error);
+      return [];
+    }
+  }
+  
+  // Execute a generic personalized query
+  async executePersonalizedContentQuery<T>(
+    contentType: string,
+    queryParams: Record<string, any> = {},
+    variantParam?: string
+  ): Promise<T[]> {
+    try {
+      const personalizedQuery: PersonalizedQuery = {
+        contentType,
+        query: queryParams,
+        variantParams: variantParam ? { cs_personalize_variant: variantParam } : undefined,
+        includePersonalization: true
+      };
+      
+      const response = await this.executePersonalizedQuery<T[]>(personalizedQuery);
+      
+      logPersonalizeEvent('PERSONALIZED_CONTENT_QUERY_EXECUTED', {
+        contentType,
+        queryParams,
+        variantParam,
+        isPersonalized: response.personalization?.isPersonalized || false
+      });
+      
+      return Array.isArray(response.content) ? response.content : [response.content];
+    } catch (error: any) {
+      console.error('Error executing personalized content query:', error);
+      throw error;
+    }
+  }
+  
+  // Check if personalization is enabled for this service
+  isPersonalizationEnabled(): boolean {
+    return this.personalizationEnabled;
+  }
+  
+  // Get personalization-aware content with fallback
+  async getContentWithPersonalization<T>(
+    contentType: string,
+    uid: string,
+    variantParam?: string,
+    fallbackContent?: T
+  ): Promise<T> {
+    try {
+      if (!this.personalizationEnabled || !variantParam) {
+        // Fallback to regular content fetching
+        const Query = this.stack.ContentType(contentType).Entry(uid);
+        const result = await Query.includeReference().toJSON().fetch();
+        return result as T;
+      }
+      
+      const personalizedQuery: PersonalizedQuery = {
+        contentType,
+        uid,
+        variantParams: { cs_personalize_variant: variantParam },
+        includePersonalization: true
+      };
+      
+      const response = await this.executePersonalizedQuery<T>(personalizedQuery);
+      
+      logPersonalizeEvent('PERSONALIZED_CONTENT_FETCHED', {
+        contentType,
+        uid,
+        variantParam,
+        isPersonalized: response.personalization?.isPersonalized || false
+      });
+      
+      return response.content;
+    } catch (error: any) {
+      console.error('Error fetching personalized content:', error);
+      
+      // Return fallback content if provided
+      if (fallbackContent) {
+        return fallbackContent;
+      }
+      
+      throw error;
+    }
   }
 }
 

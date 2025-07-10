@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
-import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
+import { onEntryChange, onLiveEdit, getEditAttributes } from '../utils/livePreview';
+import { usePersonalize, usePageView, usePhoneTracking, useSearchTracking, useUserAttributes } from '../hooks/usePersonalize';
 import './MobilePhoneList.css';
 
 const MobilePhoneList: React.FC = () => {
@@ -15,15 +16,55 @@ const MobilePhoneList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(9); // Show 9 items per page
 
-  // Fetch mobile phones data
+  // Personalization hooks
+  const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
+  const { trackPhoneView } = usePhoneTracking();
+  const { trackSearch } = useSearchTracking();
+  const { userAttributes } = useUserAttributes();
+  
+  // Track page view
+  usePageView('/browse', 'Browse Mobile Phones - Mobile Compare', {
+    trackOnMount: true,
+    trackOnChange: true
+  });
+
+  // Fetch mobile phones data with personalization
   useEffect(() => {
     const fetchMobilePhones = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const phones = await contentstackService.getAllMobilePhones();
+        // Get variant parameter for personalization
+        const variantParam = getVariantParam();
+        
+        // Fetch regular phones
+        const phones = await contentstackService.getAllMobilePhones(variantParam || undefined);
         setMobilePhones(phones);
+        
+        // Fetch personalized recommendations if user has attributes
+        if (isPersonalizeReady && Object.keys(userAttributes).length > 0) {
+          try {
+            const personalizedRecommendations = await contentstackService.getPersonalizedMobilePhoneRecommendations(
+              userAttributes,
+              variantParam || undefined,
+              20 // Get more for personalized section
+            );
+            
+            // For now, we'll just log the personalized recommendations
+            // In a full implementation, you could display them separately
+            console.log('Personalized recommendations:', personalizedRecommendations.length);
+          } catch (personalizedError) {
+            console.warn('Failed to fetch personalized recommendations:', personalizedError);
+            // Continue with regular phones
+          }
+        }
+        
+        // Track search event for browse page
+        if (isPersonalizeReady) {
+          await trackSearch('browse_all', {}, phones.length);
+        }
+        
       } catch (err: any) {
         console.error('Error fetching mobile phones:', err);
         setError(err.message || 'Failed to load mobile phones');
@@ -33,7 +74,7 @@ const MobilePhoneList: React.FC = () => {
     };
 
     fetchMobilePhones();
-  }, []);
+  }, [getVariantParam, isPersonalizeReady, userAttributes, trackSearch]);
 
   // Exact items that fit in viewport
   useEffect(() => {
@@ -82,14 +123,24 @@ const MobilePhoneList: React.FC = () => {
     }
   }, [totalPages, currentPage]);
 
-  // Event handlers
-  const handlePhoneSelect = (phone: MobilePhone) => {
+  // Event handlers with personalization tracking
+  const handlePhoneSelect = async (phone: MobilePhone) => {
     if (selectedPhones.find(p => p.uid === phone.uid)) {
       // Remove if already selected
       setSelectedPhones(selectedPhones.filter(p => p.uid !== phone.uid));
     } else if (selectedPhones.length < 4) {
       // Add if less than 4 selected
       setSelectedPhones([...selectedPhones, phone]);
+      
+      // Track phone interaction for personalization
+      if (isPersonalizeReady) {
+        await trackPhoneView({
+          uid: phone.uid,
+          title: typeof phone.title === 'string' ? phone.title : String(phone.title),
+          brand: phone.taxonomies?.[0]?.term_uid || undefined,
+          price: phone.variants?.[0]?.price || undefined
+        });
+      }
     }
   };
 

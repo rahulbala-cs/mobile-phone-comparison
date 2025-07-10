@@ -9,8 +9,10 @@ import MobilePhoneDetail from './components/MobilePhoneDetail';
 import MobilePhoneComparison from './components/MobilePhoneComparison';
 import VisualBuilderTest from './components/VisualBuilderTest';
 import ErrorBoundary, { LivePreviewErrorBoundary } from './components/shared/ErrorBoundary';
+import { DefaultPersonalizeProvider } from './contexts/PersonalizeContext';
 import { initializeLivePreview } from './utils/livePreview';
 import { FALLBACK_CONFIG } from './config/fallbacks';
+import { isPersonalizationEnabled, logPersonalizeEvent } from './utils/personalizeUtils';
 import './App.css';
 import './components/shared/ErrorBoundary.css';
 
@@ -22,22 +24,32 @@ function App() {
     });
   }, []);
 
+  // Log personalization status on app load
+  useEffect(() => {
+    const personalizationEnabled = isPersonalizationEnabled();
+    logPersonalizeEvent('APP_INITIALIZATION', {
+      personalizationEnabled,
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
+
   return (
     <ErrorBoundary>
-      <HelmetProvider>
-        <Router>
-          <div className="App">
-            <ErrorBoundary fallback={
-              <div style={{ padding: '1rem', textAlign: 'center' }}>
-                <p>{FALLBACK_CONFIG.ERRORS.NAVIGATION_UNAVAILABLE}</p>
-              </div>
-            }>
-              <HeaderNavigation />
-            </ErrorBoundary>
-            
-            <main>
-              <LivePreviewErrorBoundary>
-                <Routes>
+      <DefaultPersonalizeProvider>
+        <HelmetProvider>
+          <Router>
+            <div className="App">
+              <ErrorBoundary fallback={
+                <div style={{ padding: '1rem', textAlign: 'center' }}>
+                  <p>{FALLBACK_CONFIG.ERRORS.NAVIGATION_UNAVAILABLE}</p>
+                </div>
+              }>
+                <HeaderNavigation />
+              </ErrorBoundary>
+              
+              <main>
+                <LivePreviewErrorBoundary>
+                  <Routes>
                   {/* New Home Page - Hero landing with value proposition */}
                   <Route path="/" element={
                     <ErrorBoundary>
@@ -85,7 +97,8 @@ function App() {
           </div>
         </Router>
       </HelmetProvider>
-    </ErrorBoundary>
+    </DefaultPersonalizeProvider>
+  </ErrorBoundary>
   );
 }
 
