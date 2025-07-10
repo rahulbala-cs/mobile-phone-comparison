@@ -462,39 +462,32 @@ class ContentstackService {
     }
   }
 
-  // Fetch Home Page content from Contentstack with personalization support
-  async getHomePageContent(variantParam?: string): Promise<HomePageContent> {
+  // OFFICIAL PATTERN: Fetch Home Page content with variant aliases
+  async getHomePageContentWithVariants(variantAliases: string[]): Promise<HomePageContent> {
     try {
-      console.log('📄 Fetching Home Page content from Contentstack');
+      console.log('📄 Fetching Home Page content from Contentstack with variant aliases');
       console.log('🔧 Environment:', process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT);
       console.log('🔧 Preview mode:', process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW);
-      if (variantParam) {
-        console.log('🎯 Personalization variant:', variantParam);
-      }
+      console.log('🎯 Variant aliases:', variantAliases);
       
       let entryCall = this.stack.ContentType('home_page').Query();
       
       let result;
-      // Follow official documentation pattern for variant fetching
-      if (variantParam && shouldPersonalizeContent('home_page')) {
+      // OFFICIAL PATTERN: Use variant aliases directly from getVariantAliases()
+      if (variantAliases && variantAliases.length > 0 && shouldPersonalizeContent('home_page')) {
         try {
-          // Import SDK to access static methods
-          const Personalize = require('@contentstack/personalize-edge-sdk');
-          const variantAliases = Personalize.variantParamToVariantAliases(variantParam);
-          
-          if (variantAliases && variantAliases.length > 0) {
-            const variantAlias = variantAliases.join(',');
-            result = await entryCall.variants(variantAlias).toJSON().find();
-          } else {
-            result = await entryCall.toJSON().find();
-          }
+          const variantAlias = variantAliases.join(',');
+          result = await entryCall.variants(variantAlias).toJSON().find();
+          console.log('✅ Fetched personalized content with variants:', variantAlias);
         } catch (error) {
           // Fallback to regular fetch if variant fetching fails
-          logPersonalizeEvent('HOME_PAGE_VARIANT_FETCH_FALLBACK', { variantParam, error }, 'warn');
+          logPersonalizeEvent('HOME_PAGE_VARIANT_FETCH_FALLBACK', { variantAliases, error }, 'warn');
           result = await entryCall.toJSON().find();
+          console.log('⚠️ Fallback to default content due to variant fetch error');
         }
       } else {
         result = await entryCall.toJSON().find();
+        console.log('📄 Fetched default content (no variants available)');
       }
       
       // Validate the raw Contentstack response
@@ -530,16 +523,34 @@ class ContentstackService {
 
       const contentWithEditTags = this.addEditableTagsToHomePageEntry(homePageEntry as HomePageContent, 'home_page');
       
-      console.log('✅ Home Page content fetched successfully');
+      console.log('✅ Home Page content with variants fetched successfully');
       return contentWithEditTags;
     } catch (error: any) {
       const appError = ErrorFactory.fromUnknown(error, { 
-        operation: 'getHomePageContent',
-        contentType: 'home_page'
+        operation: 'getHomePageContentWithVariants',
+        contentType: 'home_page',
+        variantAliases
       });
       ErrorHandler.log(appError);
       throw appError;
     }
+  }
+
+  // Legacy method for backward compatibility
+  async getHomePageContent(variantParam?: string): Promise<HomePageContent> {
+    // Convert to variant aliases approach for consistency
+    let variantAliases: string[] = [];
+    
+    if (variantParam) {
+      try {
+        const Personalize = require('@contentstack/personalize-edge-sdk');
+        variantAliases = Personalize.variantParamToVariantAliases(variantParam);
+      } catch (error) {
+        console.warn('Failed to convert variant param to aliases:', error);
+      }
+    }
+    
+    return this.getHomePageContentWithVariants(variantAliases);
   }
 
   // Optimize image using Contentstack's Image Delivery API

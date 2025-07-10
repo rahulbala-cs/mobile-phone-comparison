@@ -17,16 +17,34 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Personalization hooks
-  const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
+  // Personalization hooks - using correct methods from official docs
+  const { 
+    getExperiences, 
+    getVariantAliases, 
+    isReady: isPersonalizeReady,
+    setUserAttributes 
+  } = usePersonalize();
   const { trackComponentView } = useComponentPersonalization('HomePage');
   
   // Use refs to store stable references and prevent re-renders
-  const personalizationRef = useRef({ getVariantParam, isPersonalizeReady, trackComponentView });
+  const personalizationRef = useRef({ 
+    getExperiences, 
+    getVariantAliases, 
+    isPersonalizeReady, 
+    trackComponentView,
+    setUserAttributes 
+  });
   const fetchingRef = useRef(false); // Prevent multiple simultaneous fetches
+  const userAttributesSet = useRef(false); // Track if user attributes have been set
   
   // Update refs when personalization changes (but don't trigger re-renders)
-  personalizationRef.current = { getVariantParam, isPersonalizeReady, trackComponentView };
+  personalizationRef.current = { 
+    getExperiences, 
+    getVariantAliases, 
+    isPersonalizeReady, 
+    trackComponentView,
+    setUserAttributes 
+  };
   
   // Track page view automatically
   usePageView('/', 'Mobile Compare - Compare Smartphones Side-by-Side', {
@@ -34,8 +52,7 @@ const HomePage: React.FC = () => {
     trackOnChange: true
   });
 
-  // Fetch home page content from Contentstack with personalization support
-  // Remove problematic dependencies to prevent infinite loop
+  // Fetch home page content using OFFICIAL CONTENTSTACK PERSONALIZE PATTERN
   const fetchHomePageContent = useCallback(async () => {
     // Prevent multiple simultaneous API calls
     if (fetchingRef.current) {
@@ -48,19 +65,72 @@ const HomePage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // Get variant parameter for personalization from stable ref
-      const { getVariantParam: getVariant, isPersonalizeReady: isReady, trackComponentView: trackView } = personalizationRef.current;
-      const variantParam = getVariant();
+      // Get personalization methods from stable ref
+      const { 
+        getExperiences, 
+        getVariantAliases, 
+        isPersonalizeReady: isReady, 
+        trackComponentView: trackView,
+        setUserAttributes 
+      } = personalizationRef.current;
       
-      const content = await contentstackService.getHomePageContent(variantParam || undefined);
+      // STEP 1: Set user attributes if not already set (CSR pattern)
+      if (isReady && !userAttributesSet.current) {
+        try {
+          await setUserAttributes({
+            // Set basic demographic attributes for audience targeting
+            device: 'desktop', // Could be dynamic based on user agent
+            location: 'unknown', // Could be from geolocation API
+            sessionStart: new Date().toISOString(),
+            pageType: 'homepage'
+          });
+          userAttributesSet.current = true;
+          console.log('🎯 User attributes set for personalization');
+        } catch (attrError) {
+          console.warn('⚠️ Failed to set user attributes:', attrError);
+        }
+      }
+      
+      // STEP 2: Get active experiences and variant aliases (OFFICIAL PATTERN)
+      let variantAliases: string[] = [];
+      let experiences: any[] = [];
+      
+      if (isReady) {
+        try {
+          experiences = getExperiences();
+          variantAliases = getVariantAliases();
+          
+          console.log('🎯 Active experiences:', experiences);
+          console.log('🎯 Variant aliases:', variantAliases);
+          
+          // Track impressions for active experiences
+          if (experiences.length > 0) {
+            for (const experience of experiences) {
+              if (experience.shortUid) {
+                try {
+                  await trackView(); // Track impression for this experience
+                  console.log(`✅ Tracked impression for experience: ${experience.shortUid}`);
+                } catch (impressionError) {
+                  console.warn('⚠️ Failed to track impression:', impressionError);
+                }
+              }
+            }
+          }
+        } catch (personalizeError) {
+          console.warn('⚠️ Personalization error:', personalizeError);
+        }
+      }
+      
+      // STEP 3: Fetch content with variant aliases (OFFICIAL PATTERN)
+      const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
       setHomePageContent(content);
       
-      console.log('🏠 Home Page content loaded from CMS:', content);
-      
-      // Track component view with personalization info (using stable ref)
-      if (isReady) {
-        await trackView();
-      }
+      console.log('🏠 Home Page content loaded from CMS with personalization:', {
+        content,
+        variantAliases,
+        experiences: experiences.length,
+        isPersonalized: variantAliases.length > 0
+      });
       
     } catch (err: any) {
       // Handle specific error types

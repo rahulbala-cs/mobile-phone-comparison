@@ -14,6 +14,11 @@ export interface PersonalizeSDK {
   triggerEvent(eventKey: string): Promise<void>;
   triggerImpression(experienceShortUid: string): Promise<void>;
   
+  // CRITICAL: Add missing core personalization methods from official docs
+  getExperiences(): ManifestExperience[];
+  getVariantAliases(): string[];
+  getActiveVariant(experienceShortUid: string): any;
+  
   // Constants
   VARIANT_QUERY_PARAM: string;
 }
@@ -47,6 +52,11 @@ export interface PersonalizeContextType extends PersonalizeState {
   // Event tracking
   trackEvent(eventName: string, eventData?: Record<string, any>): Promise<void>;
   trackImpression(experienceShortUid: string, variantShortUid?: string): Promise<void>;
+  
+  // CRITICAL: Add core personalization methods from official docs
+  getExperiences(): ManifestExperience[];
+  getVariantAliases(): string[];
+  getActiveVariant(experienceShortUid: string): any;
   
   // Utility methods
   getVariantParam(): string | null;
@@ -137,7 +147,14 @@ export interface PersonalizeConfig {
   };
 }
 
-// Experience and variant types
+// SDK Experience and variant types - matching actual SDK
+export interface ManifestExperience {
+  shortUid: string;
+  variantShortUid?: string;
+  [key: string]: any;
+}
+
+// Legacy Experience and variant types for backward compatibility
 export interface Experience {
   uid: string;
   shortUid: string;

@@ -33,9 +33,25 @@ export function usePersonalize() {
   return useContext(PersonalizeContext);
 }
 
-// Initialize Personalize SDK - follows official documentation pattern
+// Initialize Personalize SDK - follows official documentation pattern with validation
 async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
   try {
+    // CRITICAL: Validate setup before initialization
+    const { validatePersonalizationSetup } = await import('../utils/personalizeUtils');
+    const validation = validatePersonalizationSetup();
+    
+    if (!validation.isValid) {
+      console.error('❌ Personalization setup validation failed:', validation.errors);
+      console.warn('⚠️ Personalization warnings:', validation.warnings);
+      return null;
+    }
+    
+    if (validation.warnings.length > 0) {
+      console.warn('⚠️ Personalization setup warnings:', validation.warnings);
+    }
+    
+    console.log('✅ Personalization setup validation passed');
+    
     // Check if already initialized (following official pattern)
     if (!Personalize.getInitializationStatus()) {
       const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
@@ -45,17 +61,54 @@ async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
         return null;
       }
 
+      console.log('🚀 Initializing Contentstack Personalize SDK...');
+      console.log('📋 Project UID:', projectUid.substring(0, 8) + '...');
+
       // Set custom Edge API URL if configured
       const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
       if (edgeApiUrl) {
+        console.log('🌐 Setting Edge API URL:', edgeApiUrl);
         Personalize.setEdgeApiUrl(edgeApiUrl);
       }
 
-      return await Personalize.init(projectUid);
+      const sdk = await Personalize.init(projectUid);
+      
+      if (sdk) {
+        console.log('✅ Personalize SDK initialized successfully');
+        
+        // Log SDK capabilities for debugging
+        try {
+          const experiences = sdk.getExperiences ? sdk.getExperiences() : [];
+          const variantAliases = sdk.getVariantAliases ? sdk.getVariantAliases() : [];
+          
+          console.log('🎯 SDK Status:', {
+            hasGetExperiences: !!sdk.getExperiences,
+            hasGetVariantAliases: !!sdk.getVariantAliases,
+            experienceCount: experiences.length,
+            variantAliasCount: variantAliases.length,
+            variantAliases
+          });
+          
+          if (experiences.length === 0) {
+            console.warn('⚠️ No active experiences found. Check your Contentstack Personalize configuration.');
+          }
+        } catch (debugError) {
+          console.warn('⚠️ Could not debug SDK state:', debugError);
+        }
+      }
+      
+      return sdk;
     }
+    
+    console.log('ℹ️ Personalize SDK already initialized');
     return null;
-  } catch (error) {
-    console.error('Failed to initialize Personalize SDK:', error);
+  } catch (error: any) {
+    console.error('❌ Failed to initialize Personalize SDK:', error);
+    console.error('📋 Error details:', {
+      message: error?.message || 'Unknown error',
+      projectUid: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID ? 'configured' : 'missing',
+      edgeApiUrl: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL ? 'configured' : 'missing'
+    });
     return null;
   }
 }
@@ -74,6 +127,9 @@ export const usePersonalizeContext = () => {
         trackEvent: async (_eventKey: string): Promise<void> => {},
         trackImpression: async (_experienceShortUid: string): Promise<void> => {},
         getVariantParam: (): string | null => null,
+        getExperiences: (): any[] => [],
+        getVariantAliases: (): string[] => [],
+        getActiveVariant: (_experienceShortUid: string): any => null,
         isPersonalizationEnabled: (): boolean => false,
         clearError: (): void => {},
       };
@@ -82,10 +138,14 @@ export const usePersonalizeContext = () => {
     return {
       setUserAttribute: async (key: string, value: any): Promise<void> => {
         await sdk.set({ [key]: value });
+        // Wait for attribute propagation (up to 1 second as per docs)
+        await new Promise(resolve => setTimeout(resolve, 1100));
       },
       getUserAttribute: async (_key: string): Promise<any> => null, // SDK doesn't provide this method
       setUserAttributes: async (attributes: Record<string, any>): Promise<void> => {
         await sdk.set(attributes);
+        // Wait for attribute propagation (up to 1 second as per docs)
+        await new Promise(resolve => setTimeout(resolve, 1100));
       },
       trackEvent: async (eventKey: string): Promise<void> => {
         await sdk.triggerEvent(eventKey);
@@ -94,6 +154,11 @@ export const usePersonalizeContext = () => {
         await sdk.triggerImpression(experienceShortUid);
       },
       getVariantParam: (): string | null => sdk.getVariantParam(),
+      // CRITICAL: Add missing core personalization methods
+      getExperiences: (): any[] => sdk.getExperiences ? sdk.getExperiences() : [],
+      getVariantAliases: (): string[] => sdk.getVariantAliases ? sdk.getVariantAliases() : [],
+      getActiveVariant: (experienceShortUid: string): any => 
+        sdk.getActiveVariant ? sdk.getActiveVariant(experienceShortUid) : null,
       isPersonalizationEnabled: (): boolean => true,
       clearError: (): void => {},
     };

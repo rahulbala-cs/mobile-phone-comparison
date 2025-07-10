@@ -40,6 +40,98 @@ export const isPersonalizationEnabled = (): boolean => {
   }
 };
 
+// CRITICAL: Add comprehensive personalization validation
+export const validatePersonalizationSetup = (): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Check required environment variables
+  const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
+  if (!projectUid) {
+    errors.push('REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID is required for personalization');
+  }
+  
+  // Check optional but recommended variables
+  const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
+  if (!edgeApiUrl) {
+    warnings.push('REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL not set, using default');
+  }
+  
+  // Check Contentstack configuration
+  const apiKey = process.env.REACT_APP_CONTENTSTACK_API_KEY;
+  const deliveryToken = process.env.REACT_APP_CONTENTSTACK_DELIVERY_TOKEN;
+  const environment = process.env.REACT_APP_CONTENTSTACK_ENVIRONMENT;
+  
+  if (!apiKey) {
+    errors.push('REACT_APP_CONTENTSTACK_API_KEY is required for content delivery');
+  }
+  if (!deliveryToken) {
+    errors.push('REACT_APP_CONTENTSTACK_DELIVERY_TOKEN is required for content delivery');
+  }
+  if (!environment) {
+    warnings.push('REACT_APP_CONTENTSTACK_ENVIRONMENT not set, using default');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+};
+
+// Add SDK initialization status check
+export const checkPersonalizationStatus = async (): Promise<{
+  isInitialized: boolean;
+  hasExperiences: boolean;
+  hasVariants: boolean;
+  experienceCount: number;
+  variantCount: number;
+  error?: string;
+}> => {
+  try {
+    // Try to import SDK
+    const Personalize = require('@contentstack/personalize-edge-sdk');
+    
+    // Check initialization status
+    const initStatus = Personalize.getInitializationStatus ? Personalize.getInitializationStatus() : false;
+    
+    if (!initStatus) {
+      return {
+        isInitialized: false,
+        hasExperiences: false,
+        hasVariants: false,
+        experienceCount: 0,
+        variantCount: 0,
+        error: 'SDK not initialized'
+      };
+    }
+    
+    // If we have an initialized SDK instance, we would need to access it
+    // This is a placeholder for when the SDK is actually initialized
+    return {
+      isInitialized: true,
+      hasExperiences: false,
+      hasVariants: false,
+      experienceCount: 0,
+      variantCount: 0
+    };
+    
+  } catch (error: any) {
+    return {
+      isInitialized: false,
+      hasExperiences: false,
+      hasVariants: false,
+      experienceCount: 0,
+      variantCount: 0,
+      error: `SDK error: ${error?.message || 'Unknown error'}`
+    };
+  }
+};
+
 // URL parameter handling - using SDK constant
 export const getVariantParamFromUrl = (): string | null => {
   if (typeof window === 'undefined') return null;
