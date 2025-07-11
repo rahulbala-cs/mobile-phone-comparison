@@ -59,6 +59,17 @@ const HomePage: React.FC = () => {
     // Only upgrade if we haven't already requested personalized content
     if (personalizedContentRequested.current || fetchingRef.current) {
       console.log('🔄 Personalized content upgrade already in progress, skipping...');
+      console.log('📊 Upgrade block state:', {
+        personalizedRequested: personalizedContentRequested.current,
+        fetchingInProgress: fetchingRef.current,
+        isPersonalized: isPersonalized
+      });
+      return;
+    }
+    
+    // Skip if already showing personalized content
+    if (isPersonalized) {
+      console.log('✅ Already showing personalized content, skipping upgrade');
       return;
     }
     
@@ -162,7 +173,7 @@ const HomePage: React.FC = () => {
     } finally {
       fetchingRef.current = false;
     }
-  }, []);
+  }, [isPersonalized]);
 
   // Smart content loading with SDK state prediction
   const fetchContentWithSmartPersonalization = useCallback(async () => {
@@ -172,7 +183,16 @@ const HomePage: React.FC = () => {
 
     try {
       fetchingRef.current = true;
+      const startTime = Date.now();
       console.log('🚀 Smart loading: Starting optimized content fetch...');
+      console.log('📊 Initial state:', {
+        sdkReady: isPersonalizeReady,
+        hasContent: !!homePageContent,
+        isPersonalized: isPersonalized,
+        personalizedRequested: personalizedContentRequested.current,
+        defaultLoaded: defaultContentLoaded.current,
+        timestamp: new Date().toISOString()
+      });
       
       // Check if SDK is already ready (fast path)
       if (isPersonalizeReady) {
@@ -187,24 +207,37 @@ const HomePage: React.FC = () => {
       // Start with default content for immediate display
       const defaultContentPromise = contentstackService.getHomePageContentWithVariants([]);
       
-      // Wait briefly for SDK (but not too long to impact performance)
+      // Wait for SDK with optimized timing (up to 1000ms for better capture)
       const sdkReadyPromise = new Promise<boolean>((resolve) => {
         if (isPersonalizeReady) {
+          console.log('🎯 SDK already ready - using personalized content immediately');
           resolve(true);
           return;
         }
         
-        // Check SDK state every 50ms for up to 500ms
+        // Check SDK state every 25ms for up to 1000ms (40 attempts)
         let attempts = 0;
-        const maxAttempts = 10; // 500ms total
+        const maxAttempts = 40; // 1000ms total
         
         const checkSdk = () => {
-          if (isPersonalizeReady || attempts >= maxAttempts) {
-            resolve(isPersonalizeReady);
+          attempts++;
+          console.log(`🔍 SDK check ${attempts}/${maxAttempts}: Ready=${isPersonalizeReady}`);
+          
+          if (isPersonalizeReady) {
+            console.log('✅ SDK became ready during polling - using personalized content');
+            resolve(true);
             return;
           }
-          attempts++;
-          setTimeout(checkSdk, 50);
+          
+          if (attempts >= maxAttempts) {
+            console.log('⏰ SDK timeout reached - proceeding with default content');
+            resolve(false);
+            return;
+          }
+          
+          // Use exponential backoff for efficiency: start fast, slow down
+          const delay = attempts < 20 ? 25 : 50; // Fast polling first 500ms, then slower
+          setTimeout(checkSdk, delay);
         };
         
         checkSdk();
@@ -259,9 +292,14 @@ const HomePage: React.FC = () => {
         setHomePageContent(defaultContent);
         setIsPersonalized(false);
         defaultContentLoaded.current = true;
+        // Reset personalized content request flag to allow fallback upgrade
+        personalizedContentRequested.current = false;
+        console.log('🔄 Reset personalized content flag to allow fallback upgrade');
       }
       
       setLoading(false);
+      const endTime = Date.now();
+      console.log(`⏱️ Smart loading completed in ${endTime - startTime}ms`);
       
     } catch (err: any) {
       console.error('❌ Error in smart content loading:', err);
@@ -270,7 +308,7 @@ const HomePage: React.FC = () => {
     } finally {
       fetchingRef.current = false;
     }
-  }, [isPersonalizeReady, upgradeToPersonalizedContent]);
+  }, [isPersonalizeReady, upgradeToPersonalizedContent, isPersonalized]);
 
   // Smart loading strategy: Optimal personalization timing
   useEffect(() => {
@@ -280,11 +318,19 @@ const HomePage: React.FC = () => {
   
   // Fallback upgrade if SDK becomes ready after initial load
   useEffect(() => {
-    if (isPersonalizeReady && defaultContentLoaded.current && !personalizedContentRequested.current) {
+    // Trigger upgrade if SDK becomes ready and we're showing default content
+    if (isPersonalizeReady && !personalizedContentRequested.current && homePageContent) {
       console.log('🎯 SDK ready after initial load - upgrading to personalized content...');
+      console.log('📊 Fallback upgrade state:', {
+        sdkReady: isPersonalizeReady,
+        hasContent: !!homePageContent,
+        isPersonalized: isPersonalized,
+        personalizedRequested: personalizedContentRequested.current,
+        defaultLoaded: defaultContentLoaded.current
+      });
       upgradeToPersonalizedContent();
     }
-  }, [isPersonalizeReady, upgradeToPersonalizedContent]);
+  }, [isPersonalizeReady, upgradeToPersonalizedContent, homePageContent, isPersonalized]);
 
   // Set up Live Preview and Visual Builder for real-time updates
   useEffect(() => {
