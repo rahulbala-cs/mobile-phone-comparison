@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HomePageContent, transformHomePageContent } from '../../types/HomePageContent';
 import contentstackService from '../../services/contentstackService';
-import { onEntryChange, onLiveEdit } from '../../utils/livePreview';
 import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
 import { usePageView, useComponentPersonalization } from '../../hooks/usePersonalize';
-import { usePersonalizeContext } from '../../contexts/PersonalizeContext';
+import Personalize from '@contentstack/personalize-edge-sdk';
 import HeroSection from './HeroSection';
 import FeaturesGrid from './FeaturesGrid';
 import FeaturedComparisons from './FeaturedComparisons';
@@ -17,179 +16,178 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState<boolean>(false);
-
-  // Personalization hooks - using correct context hook
-  const personalizeContext = usePersonalizeContext();
-  const { trackComponentView } = useComponentPersonalization('HomePage');
   
-  // Add detailed debugging for SDK state
-  console.log('🔍 HomePage Personalize State:', {
-    isInitialized: personalizeContext.isInitialized,
-    isLoading: personalizeContext.isLoading,
-    isReady: personalizeContext.isInitialized && !personalizeContext.isLoading,
-    hasSDK: !!personalizeContext.sdk,
-    sdkMethods: {
-      getExperiences: typeof personalizeContext.getExperiences,
-      getVariantAliases: typeof personalizeContext.getVariantAliases,
-      setUserAttributes: typeof personalizeContext.setUserAttributes
-    }
-  });
+  // Official SDK pattern - simple state management
+  const [personalizeSdk, setPersonalizeSdk] = useState<any>(null);
+  const [sdkInitialized, setSdkInitialized] = useState<boolean>(false);
+  
+  // Add loading gate to prevent multiple simultaneous fetches
+  const isLoadingRef = useRef<boolean>(false);
+  const hasLoadedRef = useRef<boolean>(false);
+
+  // Keep hooks for tracking (they work fine)
+  const { trackComponentView } = useComponentPersonalization('HomePage');
   
   // Track page view automatically
   usePageView('/', 'Mobile Compare - Compare Smartphones Side-by-Side', {
     trackOnMount: true,
     trackOnChange: true
   });
-
-  // Stable ref for content fetching to prevent infinite loops
-  const contentFetchRef = useRef<(() => Promise<void>) | null>(null);
-
-  // OFFICIAL CSR PATTERN: Clean content loading with personalization  
-  const fetchHomePageContent = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🚀 Loading HomePage content...');
-
-      const isPersonalizeReady = personalizeContext.isInitialized && !personalizeContext.isLoading;
-      console.log('🔍 SDK Ready Check:', {
-        isInitialized: personalizeContext.isInitialized,
-        isLoading: personalizeContext.isLoading,
-        isReady: isPersonalizeReady
-      });
-
-      let variantAliases: string[] = [];
-      let experiences: any[] = [];
-
-      // STEP 1: Check if personalization is ready and get variants
-      if (isPersonalizeReady) {
-        console.log('🎯 Personalization SDK ready - fetching variants...');
-        
-        // Set user attributes for targeting (official CSR pattern)
-        try {
-          await personalizeContext.setUserAttributes({
-            device: 'desktop',
-            location: 'unknown',
-            sessionStart: new Date().toISOString(),
-            pageType: 'homepage'
-          });
-          console.log('✅ User attributes set successfully');
-        } catch (attrError) {
-          console.warn('⚠️ Failed to set user attributes:', attrError);
+  
+  // OFFICIAL PATTERN: Initialize SDK following documentation
+  useEffect(() => {
+    async function initializePersonalize() {
+      try {
+        const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
+        if (!projectUid) {
+          setSdkInitialized(true); // Mark as "done" even if no SDK
+          return;
         }
-
-        // Get experiences and variant aliases (official pattern)
-        try {
-          experiences = personalizeContext.getExperiences();
-          variantAliases = personalizeContext.getVariantAliases();
+        
+        // Set Edge API URL if configured
+        const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
+        if (edgeApiUrl) {
+          Personalize.setEdgeApiUrl(edgeApiUrl);
+        }
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 OFFICIAL: Initializing Personalize SDK...');
+        }
+        
+        // Official SDK initialization pattern
+        const sdk = await Personalize.init(projectUid);
+        setPersonalizeSdk(sdk);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ OFFICIAL: SDK initialized successfully');
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ OFFICIAL: SDK initialization failed:', error);
+        }
+      } finally {
+        setSdkInitialized(true);
+      }
+    }
+    
+    initializePersonalize();
+  }, []);
+  
+  // FIXED APPROACH: Load content once with personalization, prevent infinite loop
+  useEffect(() => {
+    const loadContentWithPersonalization = async () => {
+      // LOADING GATE: Prevent multiple simultaneous fetches
+      if (isLoadingRef.current || hasLoadedRef.current) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 GATE: Skipping duplicate content load attempt');
+        }
+        return;
+      }
+      
+      isLoadingRef.current = true;
+      
+      try {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 FIXED: Loading content with personalization from start...');
+        }
+        
+        let variantAliases: string[] = [];
+        let attempts = 0;
+        const maxAttempts = 10; // Wait up to 1 second for SDK
+        
+        // Brief wait for SDK to be available (if enabled)
+        if (process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID) {
+          while (attempts < maxAttempts && !personalizeSdk && sdkInitialized) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+          }
           
-          console.log('📊 Personalization data:', {
-            experienceCount: experiences.length,
-            variantAliasCount: variantAliases.length,
-            variantAliases
-          });
-
-          // Track impressions for active experiences
-          if (experiences.length > 0) {
-            for (const experience of experiences) {
-              if (experience.shortUid) {
-                try {
-                  await trackComponentView();
-                  console.log(`✅ Tracked impression for experience: ${experience.shortUid}`);
-                } catch (impressionError) {
-                  console.warn('⚠️ Failed to track impression:', impressionError);
+          // If SDK is available, get personalization data
+          if (personalizeSdk) {
+            try {
+              // CORS HANDLING: Try setting user attributes but don't block on failure
+              try {
+                await personalizeSdk.set({
+                  device: 'desktop',
+                  location: 'unknown',
+                  sessionStart: new Date().toISOString(),
+                  pageType: 'homepage'
+                });
+                
+                // Brief wait for attribute propagation
+                await new Promise(resolve => setTimeout(resolve, 100));
+              } catch (corsError: any) {
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn('⚠️ CORS: User attribute setting failed (non-blocking):', corsError?.message);
                 }
+                // Continue without user attributes - personalization may still work
+              }
+              
+              // Get variant aliases (this doesn't require user attributes)
+              variantAliases = personalizeSdk.getVariantAliases ? personalizeSdk.getVariantAliases() : [];
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log('📊 FIXED: Using personalization variants:', variantAliases);
+              }
+            } catch (error) {
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('⚠️ FIXED: Personalization setup failed, using default:', error);
               }
             }
           }
-        } catch (personalizeError) {
-          console.warn('⚠️ Error getting personalization data:', personalizeError);
-          variantAliases = []; // Fallback to default content
         }
-      } else {
-        console.log('⏳ Personalization SDK not ready - loading default content');
-      }
-
-      // STEP 2: Fetch content with variant aliases (official pattern)
-      console.log('📄 Fetching content with variant aliases:', variantAliases);
-      const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
-      
-      // STEP 3: Update state
-      setHomePageContent(content);
-      setIsPersonalized(variantAliases.length > 0);
-      setLoading(false);
-      
-      const personalizedStatus = variantAliases.length > 0 ? 'personalized' : 'default';
-      console.log(`✅ HomePage content loaded (${personalizedStatus})`, {
-        content,
-        variantAliases,
-        experienceCount: experiences.length,
-        isPersonalized: variantAliases.length > 0
-      });
-      
-    } catch (err: any) {
-      console.error('❌ Error loading HomePage content:', err);
-      setError(err.message || 'Failed to load home page content');
-      setLoading(false);
-    }
-  }, [personalizeContext, trackComponentView]);
-
-  // Store stable reference
-  contentFetchRef.current = fetchHomePageContent;
-
-  // Smart loading: Wait for SDK or load default content
-  useEffect(() => {
-    const loadContentWithSDKWait = async () => {
-      // If SDK is already ready, load immediately
-      if (personalizeContext.isInitialized && !personalizeContext.isLoading) {
-        console.log('🚀 SDK ready on mount - loading personalized content immediately');
-        await fetchHomePageContent();
-        return;
-      }
-
-      // Otherwise, start with content load (might be default if SDK not ready)
-      console.log('🔄 Starting content load (SDK may not be ready yet)');
-      await fetchHomePageContent();
-      
-      // Then wait a bit for SDK to potentially become ready and retry
-      setTimeout(async () => {
-        const isNowReady = personalizeContext.isInitialized && !personalizeContext.isLoading;
-        if (isNowReady && !isPersonalized) {
-          console.log('🎯 SDK became ready after initial load - upgrading to personalized content');
-          await fetchHomePageContent();
+        
+        // Load content with variants (or empty array for default)
+        const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
+        setHomePageContent(content);
+        setIsPersonalized(variantAliases.length > 0);
+        setLoading(false);
+        hasLoadedRef.current = true;
+        
+        // Track impressions if personalized (do this after content is loaded)
+        if (variantAliases.length > 0 && personalizeSdk) {
+          // Use setTimeout to avoid blocking content display
+          setTimeout(async () => {
+            try {
+              const experiences = personalizeSdk.getExperiences ? personalizeSdk.getExperiences() : [];
+              for (const experience of experiences) {
+                if (experience.shortUid) {
+                  try {
+                    await trackComponentView();
+                  } catch {
+                    // Fail silently - tracking is non-critical
+                  }
+                }
+              }
+            } catch {
+              // Fail silently - tracking is non-critical
+            }
+          }, 100);
         }
-      }, 1000); // Wait 1 second for SDK to potentially become ready
-    };
-
-    loadContentWithSDKWait();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - ignore dependency warnings for this special case
-
-  // Also listen for when SDK becomes ready
-  useEffect(() => {
-    const isSDKReady = personalizeContext.isInitialized && !personalizeContext.isLoading;
-    if (isSDKReady && !isPersonalized && homePageContent) {
-      console.log('🎯 SDK became ready and we have default content - upgrading to personalized');
-      fetchHomePageContent();
-    }
-  }, [personalizeContext.isInitialized, personalizeContext.isLoading, fetchHomePageContent, isPersonalized, homePageContent]);
-
-  // Set up Live Preview for real-time updates with stable reference
-  useEffect(() => {
-    const handleContentUpdate = () => {
-      console.log('🔄 Live Preview update detected - reloading content...');
-      if (contentFetchRef.current) {
-        contentFetchRef.current();
+        
+        if (process.env.NODE_ENV === 'development') {
+          const status = variantAliases.length > 0 ? 'personalized' : 'default';
+          console.log(`✅ FIXED: Content loaded (${status}) - no content switching!`);
+        }
+        
+      } catch (error: any) {
+        console.error('❌ Failed to load content:', error);
+        setError(error.message || 'Failed to load content');
+        setLoading(false);
+        hasLoadedRef.current = true;
+      } finally {
+        isLoadingRef.current = false;
       }
     };
     
-    onEntryChange(handleContentUpdate);
-    onLiveEdit(handleContentUpdate);
-    
-    // No cleanup needed as these are handled by the SDK
-  }, []); // Empty dependency array to prevent infinite loops
+    // FIXED: Only depend on sdkInitialized to prevent infinite loop
+    if (sdkInitialized && !hasLoadedRef.current) {
+      loadContentWithPersonalization();
+    }
+  }, [sdkInitialized]); // eslint-disable-line react-hooks/exhaustive-deps
+  // FIXED: Intentionally excluding personalizeSdk and trackComponentView to prevent infinite loop
 
-  // Loading state
+  // Loading state - should be minimal since we load default content first
   if (loading) {
     return (
       <div className="home-page">
@@ -197,20 +195,20 @@ const HomePage: React.FC = () => {
           display: 'flex', 
           justifyContent: 'center', 
           alignItems: 'center', 
-          minHeight: '50vh',
+          minHeight: '20vh',
           flexDirection: 'column',
           gap: '1rem'
         }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            border: '4px solid #e2e8f0',
-            borderTop: '4px solid #667eea',
+            width: '24px',
+            height: '24px',
+            border: '2px solid #e2e8f0',
+            borderTop: '2px solid #667eea',
             borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
+            animation: 'spin 0.6s linear infinite'
           }}></div>
-          <p style={{ color: '#64748b', fontSize: '1.125rem' }}>
-            {FALLBACK_CONFIG.LOADING.HOME_PAGE_CONTENT}
+          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+            Loading...
           </p>
         </div>
       </div>
@@ -225,7 +223,7 @@ const HomePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          minHeight: '50vh',
+          minHeight: '30vh',
           flexDirection: 'column',
           gap: '1rem',
           textAlign: 'center',
@@ -236,7 +234,7 @@ const HomePage: React.FC = () => {
           </h2>
           <p style={{ color: '#64748b', marginBottom: '2rem' }}>{error}</p>
           <button 
-            onClick={() => contentFetchRef.current && contentFetchRef.current()}
+            onClick={() => window.location.reload()}
             style={{
               background: '#667eea',
               color: 'white',
@@ -262,7 +260,7 @@ const HomePage: React.FC = () => {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          minHeight: '50vh',
+          minHeight: '30vh',
           flexDirection: 'column',
           gap: '1rem',
           textAlign: 'center'
@@ -297,28 +295,28 @@ const HomePage: React.FC = () => {
         </div>
       )}
       
-      <CMSErrorBoundary onRetry={() => contentFetchRef.current && contentFetchRef.current()}>
+      <CMSErrorBoundary onRetry={() => window.location.reload()}>
         <HeroSection 
           content={homePageContent}
           heroStats={heroStats}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={() => contentFetchRef.current && contentFetchRef.current()}>
+      <CMSErrorBoundary onRetry={() => window.location.reload()}>
         <FeaturesGrid 
           content={homePageContent}
           features={features}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={() => contentFetchRef.current && contentFetchRef.current()}>
+      <CMSErrorBoundary onRetry={() => window.location.reload()}>
         <FeaturedComparisons 
           content={homePageContent}
           comparisons={comparisons}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={() => contentFetchRef.current && contentFetchRef.current()}>
+      <CMSErrorBoundary onRetry={() => window.location.reload()}>
         <StatsSection 
           content={homePageContent}
           stats={stats}

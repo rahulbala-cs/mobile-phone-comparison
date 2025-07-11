@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { X, ShoppingCart, Eye, Plus } from 'lucide-react';
 import { MobilePhone, getFieldValue } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
-import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
+import { parseComparisonUrl } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
 import { usePersonalize, usePageView, useComparisonTracking, usePhoneTracking } from '../hooks/usePersonalize';
 import PhoneSelector from './PhoneSelector';
@@ -60,50 +60,59 @@ const MobilePhoneComparison: React.FC = () => {
     { trackOnMount: true, trackOnChange: true }
   );
 
-  // Main data fetching function with personalization support
+  // Main data fetching function with personalization support - OPTIMIZED
   const loadComparison = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
+      if (!phonesParam) {
+        setError({
+          message: 'No phones specified for comparison',
+          code: 'INVALID_URL'
+        });
+        return;
+      }
+
+      const slugs = parseComparisonUrl(phonesParam);
+      
+      if (!slugs || slugs.length < 2) {
+        setError({
+          message: 'Invalid comparison URL format',
+          code: 'INVALID_URL'
+        });
+        return;
+      }
+
       // Get variant parameter for personalization
       const variantParam = getVariantParam();
 
-      // Fetch all phones first with personalization
-      const allPhonesData = await contentstackService.getAllMobilePhones(variantParam || undefined);
-      setAllPhones(allPhonesData);
+      // PERFORMANCE FIX: Fetch only specific phones by slugs instead of all phones
+      const foundPhones = await contentstackService.getMobilePhonesBySlugs(slugs, variantParam || undefined);
       
-      if (phonesParam && allPhonesData.length > 0) {
-        const slugs = parseComparisonUrl(phonesParam);
-        
-        if (slugs && slugs.length >= 2) {
-          const foundPhones = slugs.map(slug => findPhoneBySlug(allPhonesData, slug));
-          
-          if (foundPhones.every(phone => phone !== null)) {
-            const newPhones: (MobilePhone | null)[] = [null, null, null, null];
-            foundPhones.forEach((phone, index) => {
-              if (index < 4) newPhones[index] = phone;
-            });
-            setPhones(newPhones);
-            
-            // Track comparison started with personalization
-            if (isPersonalizeReady && foundPhones.length >= 2) {
-              const phoneUids = foundPhones.filter(phone => phone !== null).map(phone => phone!.uid);
-              await trackComparisonStarted(phoneUids);
-              comparisonStartTime.current = Date.now();
-            }
-          } else {
-            setError({
-              message: 'One or more phones not found',
-              code: 'PHONES_NOT_FOUND'
-            });
-          }
-        } else {
-          setError({
-            message: 'Invalid comparison URL format',
-            code: 'INVALID_URL'
-          });
-        }
+      // Also fetch all phones for the selector (only when needed)
+      // We'll do this lazily when the selector is opened
+      
+      if (foundPhones.length !== slugs.length) {
+        setError({
+          message: `Could not find all requested phones. Found ${foundPhones.length} of ${slugs.length} phones.`,
+          code: 'PHONES_NOT_FOUND'
+        });
+        return;
+      }
+
+      // Set up phones array
+      const newPhones: (MobilePhone | null)[] = [null, null, null, null];
+      foundPhones.forEach((phone, index) => {
+        if (index < 4) newPhones[index] = phone;
+      });
+      setPhones(newPhones);
+      
+      // Track comparison started with personalization
+      if (isPersonalizeReady && foundPhones.length >= 2) {
+        const phoneUids = foundPhones.map(phone => phone.uid);
+        await trackComparisonStarted(phoneUids);
+        comparisonStartTime.current = Date.now();
       }
     } catch (err: any) {
       console.error('Error loading comparison:', err);
@@ -145,8 +154,21 @@ const MobilePhoneComparison: React.FC = () => {
     setPhones(newPhones);
   };
 
-  const addPhone = (index: number) => {
+  const addPhone = async (index: number) => {
     setSelectingSlot(index);
+    
+    // Lazy load all phones only when selector is opened
+    if (allPhones.length === 0) {
+      try {
+        const variantParam = getVariantParam();
+        const allPhonesData = await contentstackService.getAllMobilePhones(variantParam || undefined);
+        setAllPhones(allPhonesData);
+      } catch (error) {
+        console.error('Failed to load phones for selector:', error);
+        // Continue anyway - user can still use existing phones
+      }
+    }
+    
     setShowPhoneSelector(true);
   };
 

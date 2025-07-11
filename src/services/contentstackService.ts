@@ -376,6 +376,86 @@ class ContentstackService {
     }
   }
 
+  // Fetch mobile phones by title slugs (for comparison pages) with personalization support
+  async getMobilePhonesBySlugs(slugs: string[], variantParam?: string): Promise<MobilePhone[]> {
+    try {
+      if (!slugs || slugs.length === 0) return [];
+      
+      // We'll fetch a limited set and filter by slug matching
+      // This is more reliable than complex title pattern matching
+      
+      let Query = this.stack.ContentType('mobiles').Query();
+      
+      // Note: We could use regex matching but it's complex and slug-based matching is more reliable
+      
+      // Fetch a reasonable subset of phones that might match
+      Query.limit(50); // Limit to reasonable number instead of all phones
+      
+      // Add personalization parameters if provided
+      if (variantParam && shouldPersonalizeContent('mobiles')) {
+        Query = this.addPersonalizationToQuery(Query, variantParam);
+      }
+      
+      const result = await Query.includeReference().toJSON().find();
+      
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        return [];
+      }
+      
+      const phones = Array.isArray(result[0]) ? result[0] : [];
+      const processedPhones = phones.map((phone: any) => this.addEditableTagsToEntry(phone, 'mobiles'));
+      
+      // Now filter the results to match our specific slugs
+      const { generatePhoneSlug } = await import('../utils/urlUtils');
+      const matchedPhones: MobilePhone[] = [];
+      
+      for (const slug of slugs) {
+        const matchedPhone = processedPhones.find((phone: MobilePhone) => 
+          phone.title && generatePhoneSlug(phone.title) === slug
+        );
+        if (matchedPhone) {
+          matchedPhones.push(matchedPhone);
+        }
+      }
+      
+      return matchedPhones;
+      
+    } catch (error: any) {
+      console.error('Error fetching mobile phones by slugs:', error);
+      
+      // Fallback to individual fetches by URL if batch fails
+      const { generatePhoneSlug } = await import('../utils/urlUtils');
+      const matchedPhones: MobilePhone[] = [];
+      
+      for (const slug of slugs) {
+        try {
+          // Try to find phone by constructing likely URL patterns
+          const possibleUrls = [
+            `/${slug}`,
+            `/mobiles/${slug}`,
+            slug
+          ];
+          
+          for (const url of possibleUrls) {
+            try {
+              const phone = await this.getMobilePhoneByURL(url, variantParam);
+              if (phone && generatePhoneSlug(phone.title) === slug) {
+                matchedPhones.push(phone);
+                break;
+              }
+            } catch {
+              // Continue to next URL pattern
+            }
+          }
+        } catch {
+          // Skip phone if not found
+        }
+      }
+      
+      return matchedPhones;
+    }
+  }
+
   // Fetch navigation menus by type
   async getNavigationMenuByType(menuType: string): Promise<any> {
     try {

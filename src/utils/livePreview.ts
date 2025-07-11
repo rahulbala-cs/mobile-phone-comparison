@@ -27,22 +27,24 @@ export const isPreviewMode = (): boolean => {
   // For testing, also check for specific test routes
   const isTestRoute = window.location.pathname.includes('visual-builder-test');
   
-  // FORCE preview mode for development testing
-  const forcePreviewForDev = process.env.NODE_ENV === 'development';
+  // DO NOT force preview mode for development - this causes interference
+  const forcePreviewForDev = false;
   
-  console.log('🔍 Preview Mode Detection:', {
-    hasPreviewParams,
-    isInIframe,
-    isDevWithPreview,
-    isTestRoute,
-    forcePreviewForDev,
-    currentURL: window.location.href,
-    params: Object.fromEntries(urlParams),
-    userAgent: navigator.userAgent.includes('Contentstack')
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Preview Mode Detection:', {
+      hasPreviewParams,
+      isInIframe,
+      isDevWithPreview,
+      isTestRoute,
+      forcePreviewForDev,
+      currentURL: window.location.href,
+      params: Object.fromEntries(urlParams),
+      userAgent: navigator.userAgent.includes('Contentstack')
+    });
+  }
   
-  // Return based on actual detection logic
-  return hasPreviewParams || isInIframe || isDevWithPreview || isTestRoute || forcePreviewForDev;
+  // Only enable for actual preview scenarios
+  return hasPreviewParams || isInIframe || isDevWithPreview || isTestRoute;
 };
 
 // Get preview token from URL

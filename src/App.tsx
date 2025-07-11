@@ -10,27 +10,22 @@ import MobilePhoneComparison from './components/MobilePhoneComparison';
 import VisualBuilderTest from './components/VisualBuilderTest';
 import ErrorBoundary, { LivePreviewErrorBoundary } from './components/shared/ErrorBoundary';
 import { DefaultPersonalizeProvider } from './contexts/PersonalizeContext';
-import { initializeLivePreview } from './utils/livePreview';
 import { FALLBACK_CONFIG } from './config/fallbacks';
 import { isPersonalizationEnabled, logPersonalizeEvent } from './utils/personalizeUtils';
 import './App.css';
 import './components/shared/ErrorBoundary.css';
 
-function App() {
-  // Initialize Live Preview globally using standard V3.0 pattern
-  useEffect(() => {
-    initializeLivePreview().catch(error => {
-      console.error('Failed to initialize Live Preview:', error);
-    });
-  }, []);
 
-  // Log personalization status on app load
+function App() {
+  // Log personalization status on app load (development only)
   useEffect(() => {
-    const personalizationEnabled = isPersonalizationEnabled();
-    logPersonalizeEvent('APP_INITIALIZATION', {
-      personalizationEnabled,
-      timestamp: new Date().toISOString(),
-    });
+    if (process.env.NODE_ENV === 'development') {
+      const personalizationEnabled = isPersonalizationEnabled();
+      logPersonalizeEvent('APP_INITIALIZATION', {
+        personalizationEnabled,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }, []);
 
   return (

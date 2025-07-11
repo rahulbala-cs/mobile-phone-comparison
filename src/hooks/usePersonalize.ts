@@ -44,14 +44,23 @@ export const usePageView = (
   
   const lastTrackedPath = useRef<string>('');
   
-  const trackPageView = useCallback(() => {
+  const trackPageView = useCallback(async () => {
     if (!isReady) return;
     
-    // Use simple event key format as per official SDK documentation
-    trackEvent('page_view');
-    lastTrackedPath.current = pagePath;
-    
-    logPersonalizeEvent('PAGE_VIEW_TRACKED', { pagePath, pageTitle });
+    try {
+      // Use simple event key format as per official SDK documentation
+      await trackEvent('page_view');
+      lastTrackedPath.current = pagePath;
+      
+      logPersonalizeEvent('PAGE_VIEW_TRACKED', { pagePath, pageTitle });
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Page view tracking failed (non-critical):', error?.message || error);
+        console.warn('ℹ️ Continuing without event tracking - personalization will still work');
+      }
+      // Fail silently - page view tracking is not critical for app functionality
+      logPersonalizeEvent('PAGE_VIEW_TRACKING_FAILED', { pagePath, pageTitle, error: error?.message }, 'error');
+    }
   }, [isReady, pagePath, pageTitle, trackEvent]);
   
   // Track on mount
@@ -320,16 +329,17 @@ export const usePersonalizationStatus = () => {
   };
 };
 
-// Hook for component-specific personalization
+// Hook for component-specific personalization - STABILIZED to prevent infinite loops
 export const useComponentPersonalization = (componentName: string) => {
   const personalizeContext = usePersonalize();
   
   // Memoize the current variant parameter to prevent unnecessary re-renders
   const variantParam = useMemo(() => {
     return personalizeContext?.getVariantParam() || null;
-  }, [personalizeContext]);
+  }, [personalizeContext?.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  // FIXED: Intentionally excluding personalizeContext to prevent infinite loop
   
-  // Create stable tracking functions with memoization
+  // STABILIZED: Create tracking functions that don't recreate on every render
   const trackComponentView = useCallback(async () => {
     if (!personalizeContext?.isReady) return;
     
@@ -339,10 +349,14 @@ export const useComponentPersonalization = (componentName: string) => {
       
       const currentVariantParam = personalizeContext.getVariantParam();
       logPersonalizeEvent('COMPONENT_VIEW_TRACKED', { componentName, variantParam: currentVariantParam });
-    } catch (error) {
-      logPersonalizeEvent('COMPONENT_VIEW_TRACKING_FAILED', { componentName, error }, 'error');
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Component view tracking failed (non-critical):', error?.message || error);
+      }
+      logPersonalizeEvent('COMPONENT_VIEW_TRACKING_FAILED', { componentName, error: error?.message || error }, 'error');
     }
-  }, [personalizeContext, componentName]); // Remove variantParam to prevent re-creation
+  }, [personalizeContext?.isReady, personalizeContext?.trackEvent, personalizeContext?.getVariantParam, componentName]); // eslint-disable-line react-hooks/exhaustive-deps
+  // FIXED: Intentionally excluding personalizeContext to prevent infinite loop
   
   const trackComponentInteraction = useCallback(async (interactionType: string, data?: Record<string, any>) => {
     if (!personalizeContext?.isReady) return;
@@ -355,9 +369,10 @@ export const useComponentPersonalization = (componentName: string) => {
     } catch (error) {
       logPersonalizeEvent('COMPONENT_INTERACTION_TRACKING_FAILED', { componentName, interactionType, data, error }, 'error');
     }
-  }, [personalizeContext, componentName]);
+  }, [personalizeContext?.isReady, personalizeContext?.trackEvent, componentName]); // eslint-disable-line react-hooks/exhaustive-deps
+  // FIXED: Intentionally excluding personalizeContext to prevent infinite loop
   
-  // Memoize the returned object to ensure stable references
+  // STABILIZED: Memoize the returned object with stable dependencies
   return useMemo(() => ({
     variantParam,
     trackComponentView,
