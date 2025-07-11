@@ -100,8 +100,15 @@ const HomePage: React.FC = () => {
           experiences = getExperiences();
           variantAliases = getVariantAliases();
           
-          console.log('🎯 Active experiences:', experiences);
-          console.log('🎯 Variant aliases:', variantAliases);
+          console.log('🎯 SDK Ready - Active experiences:', experiences);
+          console.log('🎯 SDK Ready - Variant aliases:', variantAliases);
+          console.log('📊 Personalization State:', {
+            sdkReady: isReady,
+            experienceCount: experiences.length,
+            variantAliasCount: variantAliases.length,
+            experiences,
+            variantAliases
+          });
           
           // Track impressions for active experiences
           if (experiences.length > 0) {
@@ -119,9 +126,13 @@ const HomePage: React.FC = () => {
         } catch (personalizeError) {
           console.warn('⚠️ Personalization error:', personalizeError);
         }
+      } else {
+        console.warn('⚠️ SDK not ready, fetching default content without personalization');
+        console.log('📊 SDK State:', { isReady, userAttributesSet: userAttributesSet.current });
       }
       
       // STEP 3: Fetch content with variant aliases (OFFICIAL PATTERN)
+      console.log('📄 Fetching content with variant aliases:', variantAliases);
       const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
       setHomePageContent(content);
       
@@ -148,10 +159,16 @@ const HomePage: React.FC = () => {
     }
   }, []); // Remove all dependencies that were causing the infinite loop
 
-  // Initial data fetch
+  // Initial data fetch - wait for personalization SDK to be ready
   useEffect(() => {
-    fetchHomePageContent();
-  }, [fetchHomePageContent]);
+    // Only fetch content when personalization SDK is ready to ensure we get variant aliases
+    if (isPersonalizeReady) {
+      console.log('🎯 SDK is ready, fetching personalized content...');
+      fetchHomePageContent();
+    } else {
+      console.log('⏳ Waiting for personalization SDK to be ready...');
+    }
+  }, [fetchHomePageContent, isPersonalizeReady]);
 
   // Set up Live Preview and Visual Builder for real-time updates
   // Use a stable reference to prevent re-registration on every render
