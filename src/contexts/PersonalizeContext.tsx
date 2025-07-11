@@ -33,9 +33,18 @@ export function usePersonalize() {
   return useContext(PersonalizeContext);
 }
 
+// Store the initialized SDK instance globally to prevent re-initialization
+let globalSdkInstance: PersonalizeSDK | null = null;
+
 // Initialize Personalize SDK - follows official documentation pattern with validation
 async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
   try {
+    // Return existing instance if already initialized
+    if (globalSdkInstance) {
+      console.log('✅ Returning existing Personalize SDK instance');
+      return globalSdkInstance;
+    }
+    
     // CRITICAL: Validate setup before initialization
     const { validatePersonalizationSetup } = await import('../utils/personalizeUtils');
     const validation = validatePersonalizationSetup();
@@ -52,56 +61,57 @@ async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
     
     console.log('✅ Personalization setup validation passed');
     
-    // Check if already initialized (following official pattern)
-    if (!Personalize.getInitializationStatus()) {
-      const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
+    const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
+    
+    if (!projectUid) {
+      console.warn('Personalize project UID not configured');
+      return null;
+    }
+
+    console.log('🚀 Initializing Contentstack Personalize SDK...');
+    console.log('📋 Project UID:', projectUid.substring(0, 8) + '...');
+
+    // Set custom Edge API URL if configured
+    const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
+    if (edgeApiUrl) {
+      console.log('🌐 Setting Edge API URL:', edgeApiUrl);
+      Personalize.setEdgeApiUrl(edgeApiUrl);
+    }
+
+    // Initialize the SDK - only once globally
+    const sdk = await Personalize.init(projectUid);
+    
+    if (sdk) {
+      // Store the SDK instance globally
+      globalSdkInstance = sdk;
+      console.log('✅ Personalize SDK initialized successfully');
       
-      if (!projectUid) {
-        console.warn('Personalize project UID not configured');
-        return null;
-      }
-
-      console.log('🚀 Initializing Contentstack Personalize SDK...');
-      console.log('📋 Project UID:', projectUid.substring(0, 8) + '...');
-
-      // Set custom Edge API URL if configured
-      const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
-      if (edgeApiUrl) {
-        console.log('🌐 Setting Edge API URL:', edgeApiUrl);
-        Personalize.setEdgeApiUrl(edgeApiUrl);
-      }
-
-      const sdk = await Personalize.init(projectUid);
-      
-      if (sdk) {
-        console.log('✅ Personalize SDK initialized successfully');
+      // Log SDK capabilities for debugging
+      try {
+        const experiences = sdk.getExperiences ? sdk.getExperiences() : [];
+        const variantAliases = sdk.getVariantAliases ? sdk.getVariantAliases() : [];
         
-        // Log SDK capabilities for debugging
-        try {
-          const experiences = sdk.getExperiences ? sdk.getExperiences() : [];
-          const variantAliases = sdk.getVariantAliases ? sdk.getVariantAliases() : [];
-          
-          console.log('🎯 SDK Status:', {
-            hasGetExperiences: !!sdk.getExperiences,
-            hasGetVariantAliases: !!sdk.getVariantAliases,
-            experienceCount: experiences.length,
-            variantAliasCount: variantAliases.length,
-            variantAliases
-          });
-          
-          if (experiences.length === 0) {
-            console.warn('⚠️ No active experiences found. Check your Contentstack Personalize configuration.');
-          }
-        } catch (debugError) {
-          console.warn('⚠️ Could not debug SDK state:', debugError);
+        console.log('🎯 SDK Status:', {
+          hasGetExperiences: !!sdk.getExperiences,
+          hasGetVariantAliases: !!sdk.getVariantAliases,
+          experienceCount: experiences.length,
+          variantAliasCount: variantAliases.length,
+          variantAliases
+        });
+        
+        if (experiences.length === 0) {
+          console.warn('⚠️ No active experiences found. Check your Contentstack Personalize configuration.');
         }
+      } catch (debugError) {
+        console.warn('⚠️ Could not debug SDK state:', debugError);
       }
       
       return sdk;
     }
     
-    console.log('ℹ️ Personalize SDK already initialized');
+    console.warn('⚠️ SDK initialization returned null');
     return null;
+    
   } catch (error: any) {
     console.error('❌ Failed to initialize Personalize SDK:', error);
     console.error('📋 Error details:', {
