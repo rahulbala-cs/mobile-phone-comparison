@@ -4,7 +4,7 @@ import contentstackService from '../../services/contentstackService';
 import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
 import { usePageView, useComponentPersonalization } from '../../hooks/usePersonalize';
-import Personalize from '@contentstack/personalize-edge-sdk';
+import { useGlobalPersonalize } from '../../App';
 import HeroSection from './HeroSection';
 import FeaturesGrid from './FeaturesGrid';
 import FeaturedComparisons from './FeaturedComparisons';
@@ -13,19 +13,17 @@ import './HomePage.css';
 
 const HomePage: React.FC = () => {
   const [homePageContent, setHomePageContent] = useState<HomePageContent | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState<boolean>(false);
+  const [showSkeleton, setShowSkeleton] = useState<boolean>(true);
   
-  // Official SDK pattern - simple state management
-  const [personalizeSdk, setPersonalizeSdk] = useState<any>(null);
-  const [sdkInitialized, setSdkInitialized] = useState<boolean>(false);
+  // Use global personalization context
+  const globalPersonalize = useGlobalPersonalize();
   
-  // Add loading gate to prevent multiple simultaneous fetches
-  const isLoadingRef = useRef<boolean>(false);
+  // Loading gate to prevent multiple fetches
   const hasLoadedRef = useRef<boolean>(false);
 
-  // Keep hooks for tracking (they work fine)
+  // Keep hooks for tracking
   const { trackComponentView } = useComponentPersonalization('HomePage');
   
   // Track page view automatically
@@ -34,183 +32,127 @@ const HomePage: React.FC = () => {
     trackOnChange: true
   });
   
-  // OFFICIAL PATTERN: Initialize SDK following documentation
+  // OPTIMIZED PHASE 3: Parallel content + tracking for maximum performance
   useEffect(() => {
-    async function initializePersonalize() {
-      try {
-        const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
-        if (!projectUid) {
-          setSdkInitialized(true); // Mark as "done" even if no SDK
-          return;
-        }
-        
-        // Set Edge API URL if configured
-        const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
-        if (edgeApiUrl) {
-          Personalize.setEdgeApiUrl(edgeApiUrl);
-        }
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚀 OFFICIAL: Initializing Personalize SDK...');
-        }
-        
-        // Official SDK initialization pattern
-        const sdk = await Personalize.init(projectUid);
-        setPersonalizeSdk(sdk);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ OFFICIAL: SDK initialized successfully');
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ OFFICIAL: SDK initialization failed:', error);
-        }
-      } finally {
-        setSdkInitialized(true);
-      }
-    }
-    
-    initializePersonalize();
-  }, []);
-  
-  // FIXED APPROACH: Load content once with personalization, prevent infinite loop
-  useEffect(() => {
-    const loadContentWithPersonalization = async () => {
-      // LOADING GATE: Prevent multiple simultaneous fetches
-      if (isLoadingRef.current || hasLoadedRef.current) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚫 GATE: Skipping duplicate content load attempt');
-        }
-        return;
-      }
-      
-      isLoadingRef.current = true;
+    const loadContentWithParallelOptimization = async () => {
+      // Prevent duplicate loads
+      if (hasLoadedRef.current) return;
+      hasLoadedRef.current = true;
       
       try {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚀 FIXED: Loading content with personalization from start...');
-        }
+        // Use variants from global SDK (may be empty if SDK not ready or failed)
+        const variantAliases = globalPersonalize.variants || [];
         
-        let variantAliases: string[] = [];
-        let attempts = 0;
-        const maxAttempts = 10; // Wait up to 1 second for SDK
+        // PERFORMANCE BOOST: Execute content loading and tracking in parallel
+        const promises: Promise<any>[] = [
+          // Primary: Content loading (critical path)
+          contentstackService.getHomePageContentWithVariants(variantAliases)
+        ];
         
-        // Brief wait for SDK to be available (if enabled)
-        if (process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID) {
-          while (attempts < maxAttempts && !personalizeSdk && sdkInitialized) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-          }
-          
-          // If SDK is available, get personalization data
-          if (personalizeSdk) {
-            try {
-              // CORS HANDLING: Try setting user attributes but don't block on failure
+        // Secondary: Non-blocking tracking setup (if personalized)
+        if (variantAliases.length > 0 && globalPersonalize.sdk) {
+          promises.push(
+            // Delayed tracking to not block content rendering
+            new Promise(async (resolve) => {
               try {
-                await personalizeSdk.set({
-                  device: 'desktop',
-                  location: 'unknown',
-                  sessionStart: new Date().toISOString(),
-                  pageType: 'homepage'
-                });
+                await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
+                const experiences = globalPersonalize.sdk.getExperiences ? globalPersonalize.sdk.getExperiences() : [];
                 
-                // Brief wait for attribute propagation
-                await new Promise(resolve => setTimeout(resolve, 100));
-              } catch (corsError: any) {
-                if (process.env.NODE_ENV === 'development') {
-                  console.warn('⚠️ CORS: User attribute setting failed (non-blocking):', corsError?.message);
-                }
-                // Continue without user attributes - personalization may still work
-              }
-              
-              // Get variant aliases (this doesn't require user attributes)
-              variantAliases = personalizeSdk.getVariantAliases ? personalizeSdk.getVariantAliases() : [];
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log('📊 FIXED: Using personalization variants:', variantAliases);
-              }
-            } catch (error) {
-              if (process.env.NODE_ENV === 'development') {
-                console.warn('⚠️ FIXED: Personalization setup failed, using default:', error);
-              }
-            }
-          }
-        }
-        
-        // Load content with variants (or empty array for default)
-        const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
-        setHomePageContent(content);
-        setIsPersonalized(variantAliases.length > 0);
-        setLoading(false);
-        hasLoadedRef.current = true;
-        
-        // Track impressions if personalized (do this after content is loaded)
-        if (variantAliases.length > 0 && personalizeSdk) {
-          // Use setTimeout to avoid blocking content display
-          setTimeout(async () => {
-            try {
-              const experiences = personalizeSdk.getExperiences ? personalizeSdk.getExperiences() : [];
-              for (const experience of experiences) {
-                if (experience.shortUid) {
-                  try {
-                    await trackComponentView();
-                  } catch {
-                    // Fail silently - tracking is non-critical
+                // Track component view in background
+                for (const experience of experiences) {
+                  if (experience.shortUid) {
+                    try {
+                      await trackComponentView();
+                      break; // Only track once
+                    } catch {
+                      // Fail silently - tracking is non-critical
+                    }
                   }
                 }
+                resolve(true);
+              } catch {
+                resolve(false); // Fail silently
               }
-            } catch {
-              // Fail silently - tracking is non-critical
-            }
-          }, 100);
+            })
+          );
         }
         
-        if (process.env.NODE_ENV === 'development') {
-          const status = variantAliases.length > 0 ? 'personalized' : 'default';
-          console.log(`✅ FIXED: Content loaded (${status}) - no content switching!`);
-        }
+        // PARALLEL EXECUTION: Wait for content (critical) and let tracking happen async
+        const [content] = await Promise.all(promises);
+        
+        // Update UI immediately with content
+        setHomePageContent(content);
+        setIsPersonalized(variantAliases.length > 0);
+        setShowSkeleton(false);
         
       } catch (error: any) {
-        console.error('❌ Failed to load content:', error);
+        console.error('❌ Failed to load home page content:', error);
         setError(error.message || 'Failed to load content');
-        setLoading(false);
-        hasLoadedRef.current = true;
-      } finally {
-        isLoadingRef.current = false;
+        setShowSkeleton(false);
       }
     };
-    
-    // FIXED: Only depend on sdkInitialized to prevent infinite loop
-    if (sdkInitialized && !hasLoadedRef.current) {
-      loadContentWithPersonalization();
-    }
-  }, [sdkInitialized]); // eslint-disable-line react-hooks/exhaustive-deps
-  // FIXED: Intentionally excluding personalizeSdk and trackComponentView to prevent infinite loop
 
-  // Loading state - should be minimal since we load default content first
-  if (loading) {
+    // Load content as soon as global personalize is ready (or immediately if no personalization)
+    if (globalPersonalize.isReady) {
+      loadContentWithParallelOptimization();
+    }
+  }, [globalPersonalize.isReady, globalPersonalize.variants, globalPersonalize.sdk, trackComponentView]); // eslint-disable-line react-hooks/exhaustive-deps
+  // OPTIMIZED: Intentionally excluding error and isInitializing to prevent unnecessary re-fetches
+
+  // NEUTRAL SKELETON UI - no visible "Loading" text, seamless experience
+  if (showSkeleton) {
     return (
       <div className="home-page">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '20vh',
-          flexDirection: 'column',
-          gap: '1rem'
+        {/* Neutral skeleton that doesn't announce "loading" */}
+        <div className="skeleton-container" style={{
+          opacity: 0.6,
+          pointerEvents: 'none'
         }}>
+          {/* Hero Section Skeleton */}
           <div style={{
-            width: '24px',
-            height: '24px',
-            border: '2px solid #e2e8f0',
-            borderTop: '2px solid #667eea',
-            borderRadius: '50%',
-            animation: 'spin 0.6s linear infinite'
+            minHeight: '60vh',
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 2s infinite',
+            marginBottom: '2rem'
           }}></div>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-            Loading...
-          </p>
+          
+          {/* Features Grid Skeleton */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1.5rem',
+            padding: '2rem',
+            marginBottom: '2rem'
+          }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{
+                height: '200px',
+                background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 2s infinite',
+                borderRadius: '8px',
+                animationDelay: `${i * 0.1}s`
+              }}></div>
+            ))}
+          </div>
+          
+          {/* Stats Section Skeleton */}
+          <div style={{
+            height: '150px',
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 2s infinite',
+            margin: '2rem 0'
+          }}></div>
         </div>
+        
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+        `}</style>
       </div>
     );
   }

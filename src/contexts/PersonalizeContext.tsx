@@ -28,10 +28,6 @@ export function PersonalizeProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     const initializeSdk = async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 Starting Personalize SDK initialization...');
-        console.log('🔧 STATE: Setting isInitializing = true');
-      }
       setIsInitializing(true);
       
       let sdkInstance: PersonalizeSDK | null = null;
@@ -39,44 +35,13 @@ export function PersonalizeProvider({ children }: { children: ReactNode }) {
       try {
         sdkInstance = await getPersonalizeInstance();
         setSdk(sdkInstance);
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📋 PERSONALIZE SDK RESULT:', {
-            success: !!sdkInstance,
-            sdkInstance: sdkInstance ? 'SDK Object' : 'null',
-            hasGetExperiences: sdkInstance?.getExperiences ? 'yes' : 'no',
-            hasGetVariantAliases: sdkInstance?.getVariantAliases ? 'yes' : 'no',
-            timestamp: new Date().toISOString()
-          });
-          
-          if (sdkInstance) {
-            console.log('✅ SDK initialized successfully');
-          } else {
-            console.warn('⚠️ SDK initialization returned null - check environment variables and project configuration');
-          }
-        }
       } catch (error) {
         console.error('❌ SDK initialization failed:', error);
         setSdk(null);
         sdkInstance = null;
       } finally {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔧 STATE: Setting isInitializing = false, initializationComplete = true');
-        }
         setIsInitializing(false);
         setInitializationComplete(true);
-        
-        // Force a small delay to ensure state updates propagate
-        setTimeout(() => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🏁 PERSONALIZE PROVIDER STATE (after setState):', {
-              isInitializing: false,
-              initializationComplete: true,
-              sdkAvailable: !!sdkInstance,
-              contextReady: true
-            });
-          }
-        }, 10);
       }
     };
     
@@ -125,19 +90,16 @@ async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
   try {
     // Return existing instance if already initialized
     if (globalSdkInstance) {
-      console.log('✅ Returning existing Personalize SDK instance');
       return globalSdkInstance;
     }
     
     // If already initializing, return the existing promise
     if (initializationPromise) {
-      console.log('⏳ SDK initialization in progress, waiting...');
       return await initializationPromise;
     }
     
     // Prevent double initialization
     if (isInitializing) {
-      console.log('⚠️ Preventing double initialization');
       return null;
     }
     
@@ -150,58 +112,21 @@ async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
         const { validatePersonalizationSetup } = await import('../utils/personalizeUtils');
         const validation = validatePersonalizationSetup();
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 PERSONALIZE VALIDATION:', {
-            isValid: validation.isValid,
-            errors: validation.errors,
-            warnings: validation.warnings,
-            environmentVariables: {
-              PROJECT_UID: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID ? 'SET' : 'MISSING',
-              EDGE_API_URL: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL ? 'SET' : 'MISSING'
-            }
-          });
-        }
-        
         if (!validation.isValid) {
           console.error('❌ Personalization setup validation failed:', validation.errors);
-          console.warn('⚠️ Personalization warnings:', validation.warnings);
           return null;
-        }
-        
-        if (validation.warnings.length > 0) {
-          console.warn('⚠️ Personalization setup warnings:', validation.warnings);
-        }
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Personalization setup validation passed');
         }
         
         const projectUid = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID;
         
         if (!projectUid) {
-          console.warn('Personalize project UID not configured');
           return null;
         }
-
-        console.log('🚀 Initializing Contentstack Personalize SDK...');
-        console.log('📋 Project UID:', projectUid.substring(0, 8) + '...');
 
         // Set custom Edge API URL if configured
         const edgeApiUrl = process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL;
         if (edgeApiUrl) {
-          console.log('🌐 Setting Edge API URL:', edgeApiUrl);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Network Configuration Debug:', {
-              edgeApiUrl,
-              currentOrigin: window.location.origin,
-              protocol: window.location.protocol,
-              userAgent: navigator.userAgent.substring(0, 50) + '...',
-              timestamp: new Date().toISOString()
-            });
-          }
           Personalize.setEdgeApiUrl(edgeApiUrl);
-        } else {
-          console.warn('⚠️ No custom Edge API URL configured - using default');
         }
 
         // Initialize the SDK - only once globally
@@ -210,45 +135,13 @@ async function getPersonalizeInstance(): Promise<PersonalizeSDK | null> {
         if (sdk) {
           // Store the SDK instance globally
           globalSdkInstance = sdk;
-          console.log('✅ Personalize SDK initialized successfully');
-          
-          // Log SDK capabilities for debugging (only in development)
-          if (process.env.NODE_ENV === 'development') {
-            try {
-              const experiences = sdk.getExperiences ? sdk.getExperiences() : [];
-              const variantAliases = sdk.getVariantAliases ? sdk.getVariantAliases() : [];
-              
-              console.log('🎯 SDK Status:', {
-                hasGetExperiences: !!sdk.getExperiences,
-                hasGetVariantAliases: !!sdk.getVariantAliases,
-                experienceCount: experiences.length,
-                variantAliasCount: variantAliases.length,
-                variantAliases
-              });
-              
-              if (experiences.length === 0) {
-                console.warn('⚠️ No active experiences found. Check your Contentstack Personalize configuration.');
-              }
-            } catch (debugError) {
-              console.warn('⚠️ Could not debug SDK state:', debugError);
-            }
-          }
-          
           return sdk;
         }
         
-        console.warn('⚠️ SDK initialization returned null');
         return null;
         
       } catch (error: any) {
         console.error('❌ Failed to initialize Personalize SDK:', error);
-        if (process.env.NODE_ENV === 'development') {
-          console.error('📋 Error details:', {
-            message: error?.message || 'Unknown error',
-            projectUid: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_PROJECT_UID ? 'configured' : 'missing',
-            edgeApiUrl: process.env.REACT_APP_CONTENTSTACK_PERSONALIZE_EDGE_API_URL ? 'configured' : 'missing'
-          });
-        }
         return null;
       } finally {
         isInitializing = false;
@@ -312,50 +205,21 @@ export const usePersonalizeContext = () => {
           // Wait for attribute propagation (up to 1 second as per docs)
           await new Promise(resolve => setTimeout(resolve, 1100));
         } catch (error: any) {
-          if (process.env.NODE_ENV === 'development') {
-            // Check for CORS-specific errors
-            if (error?.message?.includes('CORS') || error?.message?.includes('Access to fetch')) {
-              console.warn('⚠️ CORS: setUserAttributes blocked by CORS policy (non-critical):', error?.message);
-              console.warn('ℹ️ This is expected in localhost development. Personalization may still work without user attributes.');
-            } else {
-              console.warn('⚠️ setUserAttributes failed:', error?.message || error);
-            }
-          }
-          // Fail silently in production - attribute setting is not critical for content delivery
+          // Fail silently - attribute setting is not critical for content delivery
         }
       },
       trackEvent: async (eventKey: string): Promise<void> => {
         try {
           await sdk.triggerEvent(eventKey);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Event tracked successfully:', eventKey);
-          }
         } catch (error: any) {
-          if (process.env.NODE_ENV === 'development') {
-            // Check for CORS-specific errors
-            if (error?.message?.includes('CORS') || error?.message?.includes('Access to fetch')) {
-              console.warn('⚠️ CORS: Event tracking blocked by CORS policy (non-critical):', error?.message);
-              console.warn('ℹ️ This is expected in localhost development. Content personalization will still work.');
-            } else {
-              console.warn('⚠️ trackEvent failed for "' + eventKey + '":', error?.message || error);
-              console.warn('ℹ️ This might be due to network issues or CORS restrictions');
-            }
-          }
-          // Fail silently in production - event tracking is not critical for functionality
+          // Fail silently - event tracking is not critical for functionality
         }
       },
       trackImpression: async (experienceShortUid: string): Promise<void> => {
         try {
           await sdk.triggerImpression(experienceShortUid);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Impression tracked successfully:', experienceShortUid);
-          }
         } catch (error: any) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('⚠️ trackImpression failed for "' + experienceShortUid + '":', error?.message || error);
-            console.warn('ℹ️ This might be due to network issues or CORS restrictions');
-          }
-          // Fail silently in production - impression tracking is not critical for functionality
+          // Fail silently - impression tracking is not critical for functionality
         }
       },
       getVariantParam: (): string | null => {

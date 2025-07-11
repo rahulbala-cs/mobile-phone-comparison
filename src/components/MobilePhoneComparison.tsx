@@ -6,7 +6,8 @@ import { MobilePhone, getFieldValue } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
-import { usePersonalize, usePageView, useComparisonTracking, usePhoneTracking } from '../hooks/usePersonalize';
+import { usePageView, useComparisonTracking, usePhoneTracking } from '../hooks/usePersonalize';
+import { useGlobalPersonalize } from '../App';
 import PhoneSelector from './PhoneSelector';
 import QuickSummarize from './QuickSummarize';
 import './MobilePhoneComparison.css';
@@ -40,8 +41,8 @@ const MobilePhoneComparison: React.FC = () => {
     currentImage: 0
   });
 
-  // Personalization hooks
-  const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
+  // Global personalization context
+  const globalPersonalize = useGlobalPersonalize();
   const { trackComparisonStarted, trackComparisonCompleted } = useComparisonTracking();
   const { trackPhoneView } = usePhoneTracking();
   
@@ -60,8 +61,11 @@ const MobilePhoneComparison: React.FC = () => {
     { trackOnMount: true, trackOnChange: true }
   );
 
-  // Main data fetching function with personalization support - OPTIMIZED
+  // OPTIMIZED: Stable loading function to prevent loops
   const loadComparison = useCallback(async () => {
+    // Only load if we have global personalization ready or no personalization needed
+    if (!globalPersonalize.isReady) return;
+    
     try {
       setLoading(true);
       setError(null);
@@ -84,14 +88,36 @@ const MobilePhoneComparison: React.FC = () => {
         return;
       }
 
-      // Get variant parameter for personalization
-      const variantParam = getVariantParam();
+      // Get variant aliases from global personalization  
+      const variantAliases = globalPersonalize.variants || [];
 
-      // PERFORMANCE FIX: Fetch only specific phones by slugs instead of all phones
-      const foundPhones = await contentstackService.getMobilePhonesBySlugs(slugs, variantParam || undefined);
+      // COMPARISON CACHING: Check cache first
+      const cacheKey = `comparison_${slugs.join('_')}_${variantAliases.join('_')}`;
+      const cachedComparison = sessionStorage.getItem(cacheKey);
       
-      // Also fetch all phones for the selector (only when needed)
-      // We'll do this lazily when the selector is opened
+      if (cachedComparison) {
+        try {
+          const parsed = JSON.parse(cachedComparison);
+          if (Date.now() - parsed.timestamp < 600000) { // 10 min cache
+            setPhones(parsed.phones);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          sessionStorage.removeItem(cacheKey); // Clean invalid cache
+        }
+      }
+
+      // Convert variant aliases to variant parameter string
+      const variantParam = variantAliases.length > 0 ? variantAliases.join(',') : undefined;
+
+      // PARALLEL OPTIMIZATION: Fetch phones and track in parallel
+      const promises: Promise<any>[] = [
+        // Primary: Fetch comparison phones
+        contentstackService.getMobilePhonesBySlugs(slugs, variantParam)
+      ];
+
+      const [foundPhones] = await Promise.all(promises);
       
       if (foundPhones.length !== slugs.length) {
         setError({
@@ -103,16 +129,28 @@ const MobilePhoneComparison: React.FC = () => {
 
       // Set up phones array
       const newPhones: (MobilePhone | null)[] = [null, null, null, null];
-      foundPhones.forEach((phone, index) => {
+      foundPhones.forEach((phone: MobilePhone, index: number) => {
         if (index < 4) newPhones[index] = phone;
       });
       setPhones(newPhones);
       
-      // Track comparison started with personalization
-      if (isPersonalizeReady && foundPhones.length >= 2) {
-        const phoneUids = foundPhones.map(phone => phone.uid);
-        await trackComparisonStarted(phoneUids);
-        comparisonStartTime.current = Date.now();
+      // Cache successful comparison
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        phones: newPhones,
+        timestamp: Date.now()
+      }));
+      
+      // Track comparison started with personalization (background)
+      if (foundPhones.length >= 2) {
+        const phoneUids = foundPhones.map((phone: MobilePhone) => phone.uid);
+        setTimeout(async () => {
+          try {
+            await trackComparisonStarted(phoneUids);
+            comparisonStartTime.current = Date.now();
+          } catch {
+            // Fail silently - tracking is non-critical
+          }
+        }, 100);
       }
     } catch (err: any) {
       console.error('Error loading comparison:', err);
@@ -123,7 +161,8 @@ const MobilePhoneComparison: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [phonesParam, getVariantParam, isPersonalizeReady, trackComparisonStarted]);
+  }, [phonesParam, globalPersonalize.variants, globalPersonalize.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  // OPTIMIZED: Intentionally excluding trackComparisonStarted to prevent loops
 
   // Initial data fetch
   useEffect(() => {
@@ -140,13 +179,13 @@ const MobilePhoneComparison: React.FC = () => {
   useEffect(() => {
     return () => {
       // Track comparison completion when component unmounts
-      if (isPersonalizeReady && validPhones.length >= 2) {
+      if (globalPersonalize.isReady && validPhones.length >= 2) {
         const duration = Date.now() - comparisonStartTime.current;
         const phoneUids = validPhones.map(phone => phone.uid);
         trackComparisonCompleted(phoneUids, duration);
       }
     };
-  }, [isPersonalizeReady, validPhones, trackComparisonCompleted]);
+  }, [globalPersonalize.isReady, validPhones, trackComparisonCompleted]);
 
   const removePhone = (index: number) => {
     const newPhones = [...phones];
@@ -160,8 +199,9 @@ const MobilePhoneComparison: React.FC = () => {
     // Lazy load all phones only when selector is opened
     if (allPhones.length === 0) {
       try {
-        const variantParam = getVariantParam();
-        const allPhonesData = await contentstackService.getAllMobilePhones(variantParam || undefined);
+        const variantAliases = globalPersonalize.variants || [];
+        const variantParam = variantAliases.length > 0 ? variantAliases.join(',') : undefined;
+        const allPhonesData = await contentstackService.getAllMobilePhones(variantParam);
         setAllPhones(allPhonesData);
       } catch (error) {
         console.error('Failed to load phones for selector:', error);
@@ -179,7 +219,7 @@ const MobilePhoneComparison: React.FC = () => {
       setPhones(newPhones);
       
       // Track phone view and update personalization attributes
-      if (isPersonalizeReady) {
+      if (globalPersonalize.isReady) {
         await trackPhoneView({
           uid: phone.uid,
           title: typeof phone.title === 'string' ? phone.title : String(phone.title),
@@ -452,9 +492,102 @@ const MobilePhoneComparison: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="msp-loading">
-        <div className="msp-spinner"></div>
-        <p>Loading comparison...</p>
+      <div className="msp-comparison">
+        {/* Comparison Skeleton UI */}
+        <div className="msp-product-cards-container">
+          <div className="msp-product-cards" style={{
+            gridTemplateColumns: '160px repeat(2, minmax(280px, 1fr))',
+            opacity: 0.6,
+            pointerEvents: 'none'
+          }}>
+            <div className="msp-spec-label-column">
+              <div className="msp-spec-label-header">Compare</div>
+            </div>
+            
+            {/* Phone Card Skeletons */}
+            {[1, 2].map(i => (
+              <div key={i} className="msp-product-card">
+                <div className="msp-card-content">
+                  <div className="msp-product-image" style={{
+                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 2s infinite',
+                    height: '200px',
+                    borderRadius: '8px'
+                  }}></div>
+                  <div style={{
+                    height: '24px',
+                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 2s infinite',
+                    margin: '1rem 0',
+                    borderRadius: '4px'
+                  }}></div>
+                  <div style={{
+                    height: '40px',
+                    background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'shimmer 2s infinite',
+                    borderRadius: '4px'
+                  }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Comparison Grid Skeleton */}
+        <div className="msp-overview-container">
+          <section className="msp-overview">
+            <div style={{
+              height: '32px',
+              background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 2s infinite',
+              marginBottom: '2rem',
+              borderRadius: '4px',
+              width: '200px'
+            }}></div>
+            
+            <div className="msp-unified-comparison-container">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '160px repeat(2, minmax(280px, 1fr))',
+                gap: '12px'
+              }}>
+                {[1, 2, 3, 4, 5].map(row => (
+                  <React.Fragment key={row}>
+                    <div style={{
+                      height: '40px',
+                      background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 2s infinite',
+                      borderRadius: '4px',
+                      animationDelay: `${row * 0.1}s`
+                    }}></div>
+                    {[1, 2].map(col => (
+                      <div key={col} style={{
+                        height: '40px',
+                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 2s infinite',
+                        borderRadius: '4px',
+                        animationDelay: `${(row * 2 + col) * 0.1}s`
+                      }}></div>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+          }
+        `}</style>
       </div>
     );
   }
