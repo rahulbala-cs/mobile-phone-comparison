@@ -365,4 +365,216 @@ export const useComponentPersonalization = (componentName: string) => {
   }), [variantParam, trackComponentView, trackComponentInteraction]);
 };
 
+// Hook for comprehensive diagnostic information
+export const usePersonalizeDiagnostics = () => {
+  const context = usePersonalize();
+  
+  const getDetailedStatus = useCallback(() => {
+    const baseStatus = {
+      timestamp: new Date().toISOString(),
+      isPersonalizationEnabled: context.isPersonalizationEnabled(),
+      isInitialized: context.isInitialized,
+      isLoading: context.isLoading,
+      isReady: context.isReady,
+      hasError: context.hasError,
+      error: context.error,
+    };
+    
+    if (!context.isReady) {
+      return {
+        ...baseStatus,
+        experiences: [],
+        variantAliases: [],
+        variantParam: null,
+        userAttributes: {},
+        sdkMethods: {}
+      };
+    }
+    
+    try {
+      const experiences = context.getExperiences();
+      const variantAliases = context.getVariantAliases();
+      const variantParam = context.getVariantParam();
+      
+      return {
+        ...baseStatus,
+        experiences,
+        variantAliases,
+        variantParam,
+        userAttributes: context.userAttributes || {},
+        experienceCount: experiences.length,
+        variantAliasCount: variantAliases.length,
+        hasActiveVariants: variantAliases.length > 0,
+        hasActiveExperiences: experiences.length > 0,
+        sdkMethods: {
+          hasGetExperiences: typeof context.getExperiences === 'function',
+          hasGetVariantAliases: typeof context.getVariantAliases === 'function',
+          hasGetVariantParam: typeof context.getVariantParam === 'function',
+          hasSetUserAttributes: typeof context.setUserAttributes === 'function',
+          hasTrackEvent: typeof context.trackEvent === 'function',
+          hasTrackImpression: typeof context.trackImpression === 'function',
+        }
+      };
+    } catch (error: any) {
+      logPersonalizeEvent('DIAGNOSTIC_ERROR', { error: error.message }, 'error');
+      
+      return {
+        ...baseStatus,
+        experiences: [],
+        variantAliases: [],
+        variantParam: null,
+        userAttributes: {},
+        diagnosticError: error.message,
+        sdkMethods: {}
+      };
+    }
+  }, [context]);
+  
+  const runQuickDiagnostic = useCallback(async () => {
+    const startTime = Date.now();
+    logPersonalizeEvent('QUICK_DIAGNOSTIC_STARTED', {});
+    
+    try {
+      const status = getDetailedStatus();
+      const issues: string[] = [];
+      const warnings: string[] = [];
+      
+      // Check for common issues
+      if (!status.isPersonalizationEnabled) {
+        issues.push('Personalization is disabled - check environment variables');
+      }
+      
+      if (!status.isInitialized) {
+        issues.push('SDK not initialized - check project configuration');
+      }
+      
+      if (status.isReady && (status as any).experienceCount === 0) {
+        warnings.push('No active experiences found - check Contentstack Personalize dashboard');
+      }
+      
+      if (status.isReady && (status as any).variantAliasCount === 0) {
+        warnings.push('No variant aliases available - experiences may not be properly configured');
+      }
+      
+      if (status.hasError) {
+        issues.push(`SDK error: ${status.error}`);
+      }
+      
+      const endTime = Date.now();
+      const result = {
+        success: issues.length === 0,
+        status,
+        issues,
+        warnings,
+        duration: endTime - startTime,
+        timestamp: new Date().toISOString()
+      };
+      
+      logPersonalizeEvent('QUICK_DIAGNOSTIC_COMPLETED', result);
+      return result;
+      
+    } catch (error: any) {
+      const result = {
+        success: false,
+        error: error.message,
+        duration: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      };
+      
+      logPersonalizeEvent('QUICK_DIAGNOSTIC_FAILED', result, 'error');
+      return result;
+    }
+  }, [getDetailedStatus]);
+  
+  const testUserAttributeUpdate = useCallback(async (testAttributes: Record<string, any>) => {
+    if (!context.isReady) {
+      return { success: false, error: 'SDK not ready' };
+    }
+    
+    try {
+      const startTime = Date.now();
+      await context.setUserAttributes(testAttributes);
+      
+      // Wait for propagation
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      const endTime = Date.now();
+      const result = {
+        success: true,
+        attributes: testAttributes,
+        duration: endTime - startTime,
+        timestamp: new Date().toISOString()
+      };
+      
+      logPersonalizeEvent('TEST_USER_ATTRIBUTES_SUCCESS', result);
+      return result;
+      
+    } catch (error: any) {
+      const result = {
+        success: false,
+        error: error.message,
+        attributes: testAttributes,
+        timestamp: new Date().toISOString()
+      };
+      
+      logPersonalizeEvent('TEST_USER_ATTRIBUTES_FAILED', result, 'error');
+      return result;
+    }
+  }, [context]);
+  
+  const validateSdkMethods = useCallback(() => {
+    const requiredMethods = [
+      'getExperiences',
+      'getVariantAliases', 
+      'getVariantParam',
+      'setUserAttributes',
+      'trackEvent',
+      'trackImpression'
+    ];
+    
+    const methodStatus = requiredMethods.reduce((acc, method) => {
+      acc[method] = {
+        exists: typeof (context as any)[method] === 'function',
+        callable: false,
+        error: null
+      };
+      
+      // Test if method is callable (for critical methods)
+      if (acc[method].exists && ['getExperiences', 'getVariantAliases'].includes(method)) {
+        try {
+          const result = (context as any)[method]();
+          acc[method].callable = true;
+          acc[method].result = Array.isArray(result) ? result.length : typeof result;
+        } catch (error: any) {
+          acc[method].error = error.message;
+        }
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+    
+    const allMethodsAvailable = requiredMethods.every(method => methodStatus[method].exists);
+    const criticalMethodsWorking = ['getExperiences', 'getVariantAliases'].every(
+      method => methodStatus[method].callable
+    );
+    
+    const result = {
+      allMethodsAvailable,
+      criticalMethodsWorking,
+      methodStatus,
+      timestamp: new Date().toISOString()
+    };
+    
+    logPersonalizeEvent('SDK_METHOD_VALIDATION', result);
+    return result;
+  }, [context]);
+  
+  return {
+    getDetailedStatus,
+    runQuickDiagnostic,
+    testUserAttributeUpdate,
+    validateSdkMethods
+  };
+};
+
 export default usePersonalize;
