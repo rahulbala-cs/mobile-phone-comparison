@@ -54,33 +54,6 @@ const HomePage: React.FC = () => {
     trackOnChange: true
   });
 
-  // Fast default content loading (parallel with SDK initialization)
-  const fetchDefaultContent = useCallback(async () => {
-    if (defaultContentLoaded.current || fetchingRef.current) {
-      return;
-    }
-
-    try {
-      fetchingRef.current = true;
-      console.log('🚀 Fast loading: Fetching default content immediately...');
-      
-      // Fetch default content without waiting for personalization
-      const content = await contentstackService.getHomePageContentWithVariants([]);
-      setHomePageContent(content);
-      setLoading(false); // Hide loading as soon as we have content
-      setIsPersonalized(false);
-      defaultContentLoaded.current = true;
-      
-      console.log('⚡ Fast loading: Default content loaded, page ready!');
-      
-    } catch (err: any) {
-      console.error('❌ Error loading default content:', err);
-      // Don't set error state here, let the main fetch handle errors
-    } finally {
-      fetchingRef.current = false;
-    }
-  }, []);
-
   // Upgrade to personalized content when SDK is ready
   const upgradeToPersonalizedContent = useCallback(async () => {
     // Only upgrade if we haven't already requested personalized content
@@ -191,16 +164,124 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
-  // Parallel loading strategy: Start with default content, upgrade when SDK ready
+  // Smart content loading with SDK state prediction
+  const fetchContentWithSmartPersonalization = useCallback(async () => {
+    if (fetchingRef.current) {
+      return;
+    }
+
+    try {
+      fetchingRef.current = true;
+      console.log('🚀 Smart loading: Starting optimized content fetch...');
+      
+      // Check if SDK is already ready (fast path)
+      if (isPersonalizeReady) {
+        console.log('⚡ SDK ready immediately - fetching personalized content...');
+        await upgradeToPersonalizedContent();
+        return;
+      }
+      
+      // SDK not ready yet - start both processes in parallel
+      console.log('🔄 SDK initializing - starting parallel fetch strategy...');
+      
+      // Start with default content for immediate display
+      const defaultContentPromise = contentstackService.getHomePageContentWithVariants([]);
+      
+      // Wait briefly for SDK (but not too long to impact performance)
+      const sdkReadyPromise = new Promise<boolean>((resolve) => {
+        if (isPersonalizeReady) {
+          resolve(true);
+          return;
+        }
+        
+        // Check SDK state every 50ms for up to 500ms
+        let attempts = 0;
+        const maxAttempts = 10; // 500ms total
+        
+        const checkSdk = () => {
+          if (isPersonalizeReady || attempts >= maxAttempts) {
+            resolve(isPersonalizeReady);
+            return;
+          }
+          attempts++;
+          setTimeout(checkSdk, 50);
+        };
+        
+        checkSdk();
+      });
+      
+      // Race between default content and SDK ready state
+      const [defaultContent, sdkReady] = await Promise.all([
+        defaultContentPromise,
+        sdkReadyPromise
+      ]);
+      
+      if (sdkReady && !personalizedContentRequested.current) {
+        console.log('🎯 SDK became ready during fetch - getting personalized content...');
+        // SDK became ready while we were fetching - get personalized version
+        personalizedContentRequested.current = true;
+        
+        // Get personalization data
+        const { getExperiences, getVariantAliases, setUserAttributes } = personalizationRef.current;
+        
+        // Set user attributes quickly
+        if (!userAttributesSet.current) {
+          try {
+            await setUserAttributes({
+              device: 'desktop',
+              location: 'unknown',
+              sessionStart: new Date().toISOString(),
+              pageType: 'homepage'
+            });
+            userAttributesSet.current = true;
+          } catch (attrError) {
+            console.warn('⚠️ Failed to set user attributes:', attrError);
+          }
+        }
+        
+        // Get variant aliases
+        getExperiences(); // Track experiences for analytics
+        const variantAliases = getVariantAliases();
+        
+        if (variantAliases.length > 0) {
+          console.log('🎯 Fetching personalized content with aliases:', variantAliases);
+          const personalizedContent = await contentstackService.getHomePageContentWithVariants(variantAliases);
+          setHomePageContent(personalizedContent);
+          setIsPersonalized(true);
+          console.log('✨ Personalized content loaded directly!');
+        } else {
+          console.log('ℹ️ No personalization available - using default content');
+          setHomePageContent(defaultContent);
+          setIsPersonalized(false);
+        }
+      } else {
+        console.log('⚡ Using default content - SDK not ready within timeout');
+        setHomePageContent(defaultContent);
+        setIsPersonalized(false);
+        defaultContentLoaded.current = true;
+      }
+      
+      setLoading(false);
+      
+    } catch (err: any) {
+      console.error('❌ Error in smart content loading:', err);
+      setError(err.message || 'Failed to load content');
+      setLoading(false);
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [isPersonalizeReady, upgradeToPersonalizedContent]);
+
+  // Smart loading strategy: Optimal personalization timing
   useEffect(() => {
-    // Start loading default content immediately for fast initial load
-    fetchDefaultContent();
-  }, [fetchDefaultContent]);
+    // Start smart content loading immediately
+    fetchContentWithSmartPersonalization();
+  }, [fetchContentWithSmartPersonalization]);
   
-  // Upgrade to personalized content when SDK becomes ready
+  // Fallback upgrade if SDK becomes ready after initial load
   useEffect(() => {
-    if (isPersonalizeReady && defaultContentLoaded.current) {
-      console.log('🎯 SDK ready and default content loaded - upgrading to personalized content...');
+    if (isPersonalizeReady && defaultContentLoaded.current && !personalizedContentRequested.current) {
+      console.log('🎯 SDK ready after initial load - upgrading to personalized content...');
       upgradeToPersonalizedContent();
     }
   }, [isPersonalizeReady, upgradeToPersonalizedContent]);
@@ -215,8 +296,8 @@ const HomePage: React.FC = () => {
       userAttributesSet.current = false;
       setLoading(true);
       
-      // Start fresh content loading cycle
-      fetchDefaultContent();
+      // Start fresh content loading cycle with smart personalization
+      fetchContentWithSmartPersonalization();
     };
     
     // The onEntryChange and onLiveEdit functions may not return unsubscribe functions
@@ -225,7 +306,7 @@ const HomePage: React.FC = () => {
     onLiveEdit(handleContentUpdate);    // For Visual Builder
     
     // No explicit cleanup needed as these are handled by the SDK
-  }, [fetchDefaultContent]);
+  }, [fetchContentWithSmartPersonalization]);
 
   // Loading state
   if (loading) {
@@ -277,7 +358,7 @@ const HomePage: React.FC = () => {
               defaultContentLoaded.current = false;
               personalizedContentRequested.current = false;
               userAttributesSet.current = false;
-              fetchDefaultContent();
+              fetchContentWithSmartPersonalization();
             }}
             style={{
               background: '#667eea',
@@ -345,7 +426,7 @@ const HomePage: React.FC = () => {
         personalizedContentRequested.current = false;
         userAttributesSet.current = false;
         setLoading(true);
-        fetchDefaultContent();
+        fetchContentWithSmartPersonalization();
       }}>
         <HeroSection 
           content={homePageContent}
@@ -359,7 +440,7 @@ const HomePage: React.FC = () => {
         personalizedContentRequested.current = false;
         userAttributesSet.current = false;
         setLoading(true);
-        fetchDefaultContent();
+        fetchContentWithSmartPersonalization();
       }}>
         <FeaturesGrid 
           content={homePageContent}
@@ -373,7 +454,7 @@ const HomePage: React.FC = () => {
         personalizedContentRequested.current = false;
         userAttributesSet.current = false;
         setLoading(true);
-        fetchDefaultContent();
+        fetchContentWithSmartPersonalization();
       }}>
         <FeaturedComparisons 
           content={homePageContent}
@@ -387,7 +468,7 @@ const HomePage: React.FC = () => {
         personalizedContentRequested.current = false;
         userAttributesSet.current = false;
         setLoading(true);
-        fetchDefaultContent();
+        fetchContentWithSmartPersonalization();
       }}>
         <StatsSection 
           content={homePageContent}
