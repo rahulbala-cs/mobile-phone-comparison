@@ -4,7 +4,6 @@ import contentstackService from '../../services/contentstackService';
 import { onEntryChange, onLiveEdit } from '../../utils/livePreview';
 import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
-import { AppError, ErrorHandler } from '../../types/errors';
 import { usePersonalize, usePageView, useComponentPersonalization } from '../../hooks/usePersonalize';
 import HeroSection from './HeroSection';
 import FeaturesGrid from './FeaturesGrid';
@@ -16,6 +15,7 @@ const HomePage: React.FC = () => {
   const [homePageContent, setHomePageContent] = useState<HomePageContent | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPersonalized, setIsPersonalized] = useState<boolean>(false); // Track if showing personalized content
 
   // Personalization hooks - using correct methods from official docs
   const { 
@@ -36,6 +36,8 @@ const HomePage: React.FC = () => {
   });
   const fetchingRef = useRef(false); // Prevent multiple simultaneous fetches
   const userAttributesSet = useRef(false); // Track if user attributes have been set
+  const defaultContentLoaded = useRef(false); // Track if default content has been loaded
+  const personalizedContentRequested = useRef(false); // Track if personalized content has been requested
   
   // Update refs when personalization changes (but don't trigger re-renders)
   personalizationRef.current = { 
@@ -52,18 +54,46 @@ const HomePage: React.FC = () => {
     trackOnChange: true
   });
 
-  // Fetch home page content using OFFICIAL CONTENTSTACK PERSONALIZE PATTERN
-  const fetchHomePageContent = useCallback(async () => {
-    // Prevent multiple simultaneous API calls
-    if (fetchingRef.current) {
-      console.log('🔄 Home page content fetch already in progress, skipping...');
+  // Fast default content loading (parallel with SDK initialization)
+  const fetchDefaultContent = useCallback(async () => {
+    if (defaultContentLoaded.current || fetchingRef.current) {
+      return;
+    }
+
+    try {
+      fetchingRef.current = true;
+      console.log('🚀 Fast loading: Fetching default content immediately...');
+      
+      // Fetch default content without waiting for personalization
+      const content = await contentstackService.getHomePageContentWithVariants([]);
+      setHomePageContent(content);
+      setLoading(false); // Hide loading as soon as we have content
+      setIsPersonalized(false);
+      defaultContentLoaded.current = true;
+      
+      console.log('⚡ Fast loading: Default content loaded, page ready!');
+      
+    } catch (err: any) {
+      console.error('❌ Error loading default content:', err);
+      // Don't set error state here, let the main fetch handle errors
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, []);
+
+  // Upgrade to personalized content when SDK is ready
+  const upgradeToPersonalizedContent = useCallback(async () => {
+    // Only upgrade if we haven't already requested personalized content
+    if (personalizedContentRequested.current || fetchingRef.current) {
+      console.log('🔄 Personalized content upgrade already in progress, skipping...');
       return;
     }
     
     try {
       fetchingRef.current = true;
-      setLoading(true);
-      setError(null);
+      personalizedContentRequested.current = true;
+      console.log('🎯 Upgrading to personalized content...');
+      // Don't show loading state for upgrade - keep showing current content
       
       // Get personalization methods from stable ref
       const { 
@@ -74,8 +104,14 @@ const HomePage: React.FC = () => {
         setUserAttributes 
       } = personalizationRef.current;
       
+      // Ensure SDK is actually ready
+      if (!isReady) {
+        console.log('⚠️ SDK not ready during upgrade attempt, skipping...');
+        return;
+      }
+      
       // STEP 1: Set user attributes if not already set (CSR pattern)
-      if (isReady && !userAttributesSet.current) {
+      if (!userAttributesSet.current) {
         try {
           await setUserAttributes({
             // Set basic demographic attributes for audience targeting
@@ -85,7 +121,7 @@ const HomePage: React.FC = () => {
             pageType: 'homepage'
           });
           userAttributesSet.current = true;
-          console.log('🎯 User attributes set for personalization');
+          console.log('🎯 User attributes set for personalization upgrade');
         } catch (attrError) {
           console.warn('⚠️ Failed to set user attributes:', attrError);
         }
@@ -95,90 +131,92 @@ const HomePage: React.FC = () => {
       let variantAliases: string[] = [];
       let experiences: any[] = [];
       
-      if (isReady) {
-        try {
-          experiences = getExperiences();
-          variantAliases = getVariantAliases();
-          
-          console.log('🎯 SDK Ready - Active experiences:', experiences);
-          console.log('🎯 SDK Ready - Variant aliases:', variantAliases);
-          console.log('📊 Personalization State:', {
-            sdkReady: isReady,
-            experienceCount: experiences.length,
-            variantAliasCount: variantAliases.length,
-            experiences,
-            variantAliases
-          });
-          
-          // Track impressions for active experiences
-          if (experiences.length > 0) {
-            for (const experience of experiences) {
-              if (experience.shortUid) {
-                try {
-                  await trackView(); // Track impression for this experience
-                  console.log(`✅ Tracked impression for experience: ${experience.shortUid}`);
-                } catch (impressionError) {
-                  console.warn('⚠️ Failed to track impression:', impressionError);
-                }
+      try {
+        experiences = getExperiences();
+        variantAliases = getVariantAliases();
+        
+        console.log('🎯 Upgrade - Active experiences:', experiences);
+        console.log('🎯 Upgrade - Variant aliases:', variantAliases);
+        
+        // Only upgrade if we actually have variant aliases (personalization available)
+        if (variantAliases.length === 0) {
+          console.log('ℹ️ No personalization available, keeping default content');
+          return;
+        }
+        
+        console.log('📊 Personalization Upgrade State:', {
+          sdkReady: isReady,
+          experienceCount: experiences.length,
+          variantAliasCount: variantAliases.length,
+          variantAliases
+        });
+        
+        // Track impressions for active experiences
+        if (experiences.length > 0) {
+          for (const experience of experiences) {
+            if (experience.shortUid) {
+              try {
+                await trackView(); // Track impression for this experience
+                console.log(`✅ Tracked impression for experience: ${experience.shortUid}`);
+              } catch (impressionError) {
+                console.warn('⚠️ Failed to track impression:', impressionError);
               }
             }
           }
-        } catch (personalizeError) {
-          console.warn('⚠️ Personalization error:', personalizeError);
         }
-      } else {
-        console.warn('⚠️ SDK not ready, fetching default content without personalization');
-        console.log('📊 SDK State:', { isReady, userAttributesSet: userAttributesSet.current });
+      } catch (personalizeError) {
+        console.warn('⚠️ Personalization upgrade error:', personalizeError);
+        return; // Keep default content on error
       }
       
-      // STEP 3: Fetch content with variant aliases (OFFICIAL PATTERN)
-      console.log('📄 Fetching content with variant aliases:', variantAliases);
-      const content = await contentstackService.getHomePageContentWithVariants(variantAliases);
-      setHomePageContent(content);
+      // STEP 3: Fetch personalized content with variant aliases
+      console.log('🎯 Fetching personalized content with variant aliases:', variantAliases);
+      const personalizedContent = await contentstackService.getHomePageContentWithVariants(variantAliases);
       
-      console.log('🏠 Home Page content loaded from CMS with personalization:', {
-        content,
+      // Smoothly upgrade to personalized content
+      setHomePageContent(personalizedContent);
+      setIsPersonalized(true);
+      
+      console.log('✨ Content upgraded to personalized version successfully!', {
+        personalizedContent,
         variantAliases,
-        experiences: experiences.length,
-        isPersonalized: variantAliases.length > 0
+        isPersonalized: true
       });
       
     } catch (err: any) {
-      // Handle specific error types
-      if (err instanceof AppError) {
-        ErrorHandler.log(err);
-        const userMessage = ErrorHandler.getUserMessage(err);
-        setError(userMessage);
-      } else {
-        console.error('❌ Error loading Home Page content:', err);
-        setError(err.message || 'Failed to load home page content');
-      }
+      console.error('❌ Error upgrading to personalized content:', err);
+      // Keep showing default content on error - don't break the user experience
     } finally {
-      setLoading(false);
       fetchingRef.current = false;
     }
-  }, []); // Remove all dependencies that were causing the infinite loop
+  }, []);
 
-  // Initial data fetch - wait for personalization SDK to be ready
+  // Parallel loading strategy: Start with default content, upgrade when SDK ready
   useEffect(() => {
-    // Only fetch content when personalization SDK is ready to ensure we get variant aliases
-    if (isPersonalizeReady) {
-      console.log('🎯 SDK is ready, fetching personalized content...');
-      fetchHomePageContent();
-    } else {
-      console.log('⏳ Waiting for personalization SDK to be ready...');
+    // Start loading default content immediately for fast initial load
+    fetchDefaultContent();
+  }, [fetchDefaultContent]);
+  
+  // Upgrade to personalized content when SDK becomes ready
+  useEffect(() => {
+    if (isPersonalizeReady && defaultContentLoaded.current) {
+      console.log('🎯 SDK ready and default content loaded - upgrading to personalized content...');
+      upgradeToPersonalizedContent();
     }
-  }, [fetchHomePageContent, isPersonalizeReady]);
+  }, [isPersonalizeReady, upgradeToPersonalizedContent]);
 
   // Set up Live Preview and Visual Builder for real-time updates
-  // Use a stable reference to prevent re-registration on every render
-  const stableFetchRef = useRef(fetchHomePageContent);
-  stableFetchRef.current = fetchHomePageContent;
-  
   useEffect(() => {
-    // Create a stable wrapper function to prevent Live Preview listener churn
+    // Create stable wrapper functions for live preview
     const handleContentUpdate = () => {
-      stableFetchRef.current();
+      // Reset state and re-fetch content on live preview changes
+      defaultContentLoaded.current = false;
+      personalizedContentRequested.current = false;
+      userAttributesSet.current = false;
+      setLoading(true);
+      
+      // Start fresh content loading cycle
+      fetchDefaultContent();
     };
     
     // The onEntryChange and onLiveEdit functions may not return unsubscribe functions
@@ -187,7 +225,7 @@ const HomePage: React.FC = () => {
     onLiveEdit(handleContentUpdate);    // For Visual Builder
     
     // No explicit cleanup needed as these are handled by the SDK
-  }, []); // Remove fetchHomePageContent dependency to prevent re-registration
+  }, [fetchDefaultContent]);
 
   // Loading state
   if (loading) {
@@ -232,7 +270,15 @@ const HomePage: React.FC = () => {
           <h2 style={{ color: '#dc2626', marginBottom: '1rem' }}>{FALLBACK_CONFIG.ERRORS.LOADING_FAILED}</h2>
           <p style={{ color: '#64748b', marginBottom: '2rem' }}>{error}</p>
           <button 
-            onClick={fetchHomePageContent}
+            onClick={() => {
+              // Reset state and retry
+              setError(null);
+              setLoading(true);
+              defaultContentLoaded.current = false;
+              personalizedContentRequested.current = false;
+              userAttributesSet.current = false;
+              fetchDefaultContent();
+            }}
             style={{
               background: '#667eea',
               color: 'white',
@@ -275,28 +321,74 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-page">
-      <CMSErrorBoundary onRetry={fetchHomePageContent}>
+      {/* Development indicator for personalization status */}
+      {process.env.NODE_ENV === 'development' && isPersonalized && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: '#10b981',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          zIndex: 9999,
+          fontFamily: 'monospace'
+        }}>
+          🎯 Personalized
+        </div>
+      )}
+      
+      <CMSErrorBoundary onRetry={() => {
+        // Reset state and retry content loading
+        defaultContentLoaded.current = false;
+        personalizedContentRequested.current = false;
+        userAttributesSet.current = false;
+        setLoading(true);
+        fetchDefaultContent();
+      }}>
         <HeroSection 
           content={homePageContent}
           heroStats={heroStats}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={fetchHomePageContent}>
+      <CMSErrorBoundary onRetry={() => {
+        // Reset state and retry content loading
+        defaultContentLoaded.current = false;
+        personalizedContentRequested.current = false;
+        userAttributesSet.current = false;
+        setLoading(true);
+        fetchDefaultContent();
+      }}>
         <FeaturesGrid 
           content={homePageContent}
           features={features}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={fetchHomePageContent}>
+      <CMSErrorBoundary onRetry={() => {
+        // Reset state and retry content loading
+        defaultContentLoaded.current = false;
+        personalizedContentRequested.current = false;
+        userAttributesSet.current = false;
+        setLoading(true);
+        fetchDefaultContent();
+      }}>
         <FeaturedComparisons 
           content={homePageContent}
           comparisons={comparisons}
         />
       </CMSErrorBoundary>
       
-      <CMSErrorBoundary onRetry={fetchHomePageContent}>
+      <CMSErrorBoundary onRetry={() => {
+        // Reset state and retry content loading
+        defaultContentLoaded.current = false;
+        personalizedContentRequested.current = false;
+        userAttributesSet.current = false;
+        setLoading(true);
+        fetchDefaultContent();
+      }}>
         <StatsSection 
           content={homePageContent}
           stats={stats}
