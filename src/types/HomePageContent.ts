@@ -1,4 +1,5 @@
 // TypeScript interfaces for Home Page content from Contentstack CMS
+import { MobilePhone } from './MobilePhone';
 
 export interface HomePageContent {
   title: string;
@@ -168,6 +169,27 @@ export interface Stat {
   description: string;
 }
 
+// New interfaces for Hero Phone Showcase
+export interface HeroPhoneShowcase {
+  phone_1: MobilePhoneReference;
+  phone_2: MobilePhoneReference;
+  vs_text: string;
+  specifications: HeroPhoneSpec[];
+}
+
+export interface MobilePhoneReference {
+  uid: string;
+  title: string;
+  icon?: string;
+}
+
+export interface HeroPhoneSpec {
+  label: string;
+  phone_1_value: string;
+  phone_2_value: string;
+  phone_2_better: boolean;
+}
+
 // Helper functions to transform flat CMS data into structured arrays
 export const transformHomePageContent = (content: HomePageContent) => {
   const heroStats: HeroStat[] = [];
@@ -240,4 +262,78 @@ export const transformHomePageContent = (content: HomePageContent) => {
     comparisons,
     stats
   };
+};
+
+// Transform hero phone showcase data from new CMS structure
+export const transformHeroPhoneShowcase = async (
+  showcaseData: any,
+  getPhoneByUID: (uid: string) => Promise<MobilePhone>
+): Promise<HeroPhoneShowcase> => {
+  try {
+    // Fetch phone data for both phones
+    const [phone1, phone2] = await Promise.all([
+      getPhoneByUID(showcaseData.phone_1_uid),
+      getPhoneByUID(showcaseData.phone_2_uid)
+    ]);
+
+    // Transform specifications
+    const specifications: HeroPhoneSpec[] = showcaseData.specifications?.map((spec: any) => ({
+      label: spec.label,
+      phone_1_value: spec.phone_1_value,
+      phone_2_value: spec.phone_2_value,
+      phone_2_better: spec.better_phone
+    })) || [];
+
+    return {
+      phone_1: {
+        uid: phone1.uid,
+        title: phone1.title,
+        icon: '📱'
+      },
+      phone_2: {
+        uid: phone2.uid,
+        title: phone2.title,
+        icon: '📱'
+      },
+      vs_text: showcaseData.vs_text || 'VS',
+      specifications
+    };
+  } catch (error) {
+    console.error('Error transforming hero phone showcase:', error);
+    
+    // Return fallback data
+    return {
+      phone_1: {
+        uid: 'fallback',
+        title: 'iPhone 16 Pro Max',
+        icon: '📱'
+      },
+      phone_2: {
+        uid: 'fallback',
+        title: 'Samsung Galaxy S25 Ultra',
+        icon: '📱'
+      },
+      vs_text: 'VS',
+      specifications: [
+        {
+          label: 'Camera',
+          phone_1_value: '48MP',
+          phone_2_value: '50MP',
+          phone_2_better: true
+        },
+        {
+          label: 'Battery',
+          phone_1_value: '3274mAh',
+          phone_2_value: '4700mAh',
+          phone_2_better: true
+        },
+        {
+          label: 'Price',
+          phone_1_value: '₹1,34,900',
+          phone_2_value: '₹1,05,999',
+          phone_2_better: true
+        }
+      ]
+    };
+  }
 };

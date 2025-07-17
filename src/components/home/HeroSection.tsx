@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, Search } from 'lucide-react';
 import { Button, Card } from '../shared';
-import { HomePageContent, HeroStat } from '../../types/HomePageContent';
+import { HomePageContent, HeroStat, HeroPhoneShowcase } from '../../types/HomePageContent';
 import { getEditAttributes } from '../../utils/livePreview';
 import { FallbackHelper } from '../../config/fallbacks';
 import { getFieldValue } from '../../types/EditableTags';
@@ -11,9 +11,10 @@ import './HeroSection.css';
 interface HeroSectionProps {
   content: HomePageContent;
   heroStats: HeroStat[];
+  heroShowcase?: HeroPhoneShowcase | null;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats }) => {
+const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats, heroShowcase }) => {
   const navigate = useNavigate();
 
   // Memoized navigation handlers to prevent unnecessary re-renders
@@ -42,37 +43,63 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
   }, [heroStats]);
 
   // Memoized phone showcase data to prevent unnecessary re-computation
-  const phoneShowcaseData = useMemo(() => ({
-    phone1: {
-      name: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_1_name), 'DEFAULT_PHONE_1'),
-      icon: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_1_icon), 'PHONE_ICON')
-    },
-    phone2: {
-      name: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_2_name), 'DEFAULT_PHONE_2'),
-      icon: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_2_icon), 'PHONE_ICON')
-    },
-    vsText: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_vs_text), 'VS_TEXT'),
-    specs: [
-      {
-        label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_label), 'CAMERA_LABEL'),
-        phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_phone_1_value), 'CAMERA_PHONE_1'),
-        phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_phone_2_value), 'CAMERA_PHONE_2'),
-        phone1Better: getFieldValue(content.hero_spec_1_phone_1_better)
+  const phoneShowcaseData = useMemo(() => {
+    // Use new CMS structure if available, otherwise fallback to old structure or defaults
+    if (heroShowcase) {
+      return {
+        phone1: {
+          name: heroShowcase.phone_1.title,
+          icon: heroShowcase.phone_1.icon || '📱'
+        },
+        phone2: {
+          name: heroShowcase.phone_2.title,
+          icon: heroShowcase.phone_2.icon || '📱'
+        },
+        vsText: heroShowcase.vs_text,
+        specs: heroShowcase.specifications.map(spec => ({
+          label: spec.label,
+          phone1Value: spec.phone_1_value,
+          phone2Value: spec.phone_2_value,
+          phone1Better: !spec.phone_2_better,
+          phone2Better: spec.phone_2_better
+        }))
+      };
+    }
+
+    // Fallback to old CMS structure or defaults
+    return {
+      phone1: {
+        name: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_1_name), 'DEFAULT_PHONE_1'),
+        icon: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_1_icon), 'PHONE_ICON')
       },
-      {
-        label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_label), 'BATTERY_LABEL'),
-        phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_phone_1_value), 'BATTERY_PHONE_1'),
-        phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_phone_2_value), 'BATTERY_PHONE_2'),
-        phone2Better: getFieldValue(content.hero_spec_2_phone_2_better)
+      phone2: {
+        name: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_2_name), 'DEFAULT_PHONE_2'),
+        icon: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_phone_2_icon), 'PHONE_ICON')
       },
-      {
-        label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_label), 'PRICE_LABEL'),
-        phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_phone_1_value), 'PRICE_PHONE_1'),
-        phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_phone_2_value), 'PRICE_PHONE_2'),
-        phone2Better: getFieldValue(content.hero_spec_3_phone_2_better)
-      }
-    ]
-  }), [
+      vsText: FallbackHelper.getPhoneInfo(getFieldValue(content.hero_vs_text), 'VS_TEXT'),
+      specs: [
+        {
+          label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_label), 'CAMERA_LABEL'),
+          phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_phone_1_value), 'CAMERA_PHONE_1'),
+          phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_1_phone_2_value), 'CAMERA_PHONE_2'),
+          phone1Better: getFieldValue(content.hero_spec_1_phone_1_better)
+        },
+        {
+          label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_label), 'BATTERY_LABEL'),
+          phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_phone_1_value), 'BATTERY_PHONE_1'),
+          phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_2_phone_2_value), 'BATTERY_PHONE_2'),
+          phone2Better: getFieldValue(content.hero_spec_2_phone_2_better)
+        },
+        {
+          label: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_label), 'PRICE_LABEL'),
+          phone1Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_phone_1_value), 'PRICE_PHONE_1'),
+          phone2Value: FallbackHelper.getSpecification(getFieldValue(content.hero_spec_3_phone_2_value), 'PRICE_PHONE_2'),
+          phone2Better: getFieldValue(content.hero_spec_3_phone_2_better)
+        }
+      ]
+    };
+  }, [
+    heroShowcase,
     content.hero_phone_1_name, content.hero_phone_1_icon,
     content.hero_phone_2_name, content.hero_phone_2_icon,
     content.hero_vs_text,

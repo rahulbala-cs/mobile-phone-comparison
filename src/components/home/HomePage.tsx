@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HomePageContent, transformHomePageContent } from '../../types/HomePageContent';
+import { HomePageContent, transformHomePageContent, HeroPhoneShowcase, transformHeroPhoneShowcase } from '../../types/HomePageContent';
 import contentstackService from '../../services/contentstackService';
 import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
@@ -13,6 +13,7 @@ import './HomePage.css';
 
 const HomePage: React.FC = () => {
   const [homePageContent, setHomePageContent] = useState<HomePageContent | null>(null);
+  const [heroShowcase, setHeroShowcase] = useState<HeroPhoneShowcase | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPersonalized, setIsPersonalized] = useState<boolean>(false);
   const [showSkeleton, setShowSkeleton] = useState<boolean>(true);
@@ -79,6 +80,19 @@ const HomePage: React.FC = () => {
         
         // PARALLEL EXECUTION: Wait for content (critical) and let tracking happen async
         const [content] = await Promise.all(promises);
+        
+        // Fetch hero phone showcase data
+        try {
+          const showcaseData = await contentstackService.getHeroPhoneShowcase('blt111ef00d3b7d90a7');
+          const heroShowcaseTransformed = await transformHeroPhoneShowcase(
+            showcaseData,
+            (uid: string) => contentstackService.getMobilePhoneByUID(uid)
+          );
+          setHeroShowcase(heroShowcaseTransformed);
+        } catch (heroError) {
+          console.warn('Failed to load hero phone showcase, using fallback:', heroError);
+          // Hero showcase will remain null and use fallback logic
+        }
         
         // Update UI immediately with content
         setHomePageContent(content);
@@ -241,6 +255,7 @@ const HomePage: React.FC = () => {
         <HeroSection 
           content={homePageContent}
           heroStats={heroStats}
+          heroShowcase={heroShowcase}
         />
       </CMSErrorBoundary>
       

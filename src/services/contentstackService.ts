@@ -779,6 +779,61 @@ class ContentstackService {
   isPersonalizationEnabled(): boolean {
     return this.personalizationEnabled;
   }
+
+  // Fetch Hero Phone Showcase data
+  async getHeroPhoneShowcase(showcaseUID: string): Promise<any> {
+    try {
+      console.log('🎯 Fetching Hero Phone Showcase');
+      
+      const showcaseEntry = await this.stack.ContentType('hero_phone_showcase').Entry(showcaseUID).includeReference().toJSON().fetch();
+      
+      if (!showcaseEntry) {
+        throw new Error('Hero Phone Showcase not found');
+      }
+
+      // Fetch phone comparison specs
+      const specsQuery = this.stack.ContentType('phone_comparison_spec').Query();
+      const specsResult = await specsQuery.includeReference().toJSON().find();
+      
+      const specs = Array.isArray(specsResult[0]) ? specsResult[0] : [];
+      
+      return {
+        ...showcaseEntry,
+        specifications: specs
+      };
+    } catch (error: any) {
+      console.error('Error fetching Hero Phone Showcase:', error);
+      throw error;
+    }
+  }
+
+  // Fetch mobile phone data by UID for hero showcase
+  async getMobilePhoneForHero(phoneUID: string): Promise<any> {
+    try {
+      const phoneEntry = await this.stack.ContentType('mobiles').Entry(phoneUID).toJSON().fetch();
+      
+      if (!phoneEntry) {
+        return {
+          uid: phoneUID,
+          title: 'Unknown Phone',
+          icon: '📱'
+        };
+      }
+
+      return {
+        uid: phoneEntry.uid,
+        title: phoneEntry.title,
+        icon: '📱' // Default icon for now
+      };
+    } catch (error) {
+      console.error('Error fetching phone for hero:', error);
+      return {
+        uid: phoneUID,
+        title: 'Unknown Phone',
+        icon: '📱'
+      };
+    }
+  }
   
   // Get personalization-aware content with fallback
   async getContentWithPersonalization<T>(
