@@ -834,6 +834,72 @@ class ContentstackService {
       };
     }
   }
+
+  // Fetch Compare Page content
+  async getComparePageContent(): Promise<any> {
+    try {
+      console.log('🎯 Fetching Compare Page content');
+      
+      const pageQuery = this.stack.ContentType('compare_page_builder').Query();
+      pageQuery.where('url', '/compare');
+      const pageResult = await pageQuery.includeReference().toJSON().find();
+      
+      if (!pageResult || !Array.isArray(pageResult) || pageResult.length === 0) {
+        throw new Error('Compare page content not found');
+      }
+
+      const [entries] = pageResult;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        throw new Error('Compare page entries not found');
+      }
+
+      return entries[0];
+    } catch (error: any) {
+      console.error('Error fetching Compare Page content:', error);
+      throw error;
+    }
+  }
+
+  // Fetch all comparison categories
+  async getComparisonCategories(): Promise<any[]> {
+    try {
+      console.log('🎯 Fetching Comparison Categories');
+      
+      const categoriesQuery = this.stack.ContentType('comparison_category').Query();
+      const categoriesResult = await categoriesQuery.includeReference().toJSON().find();
+      
+      if (!categoriesResult || !Array.isArray(categoriesResult) || categoriesResult.length === 0) {
+        return [];
+      }
+
+      const [entries] = categoriesResult;
+      return Array.isArray(entries) ? entries : [];
+    } catch (error: any) {
+      console.error('Error fetching Comparison Categories:', error);
+      return [];
+    }
+  }
+
+  // Fetch featured comparisons
+  async getFeaturedComparisons(): Promise<any[]> {
+    try {
+      console.log('🎯 Fetching Featured Comparisons');
+      
+      const comparisonsQuery = this.stack.ContentType('featured_comparison').Query();
+      comparisonsQuery.ascending('display_priority');
+      const comparisonsResult = await comparisonsQuery.includeReference().toJSON().find();
+      
+      if (!comparisonsResult || !Array.isArray(comparisonsResult) || comparisonsResult.length === 0) {
+        return [];
+      }
+
+      const [entries] = comparisonsResult;
+      return Array.isArray(entries) ? entries : [];
+    } catch (error: any) {
+      console.error('Error fetching Featured Comparisons:', error);
+      return [];
+    }
+  }
   
   // Get personalization-aware content with fallback
   async getContentWithPersonalization<T>(

@@ -1,68 +1,63 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, Laptop, Headphones, ArrowRight, TrendingUp, Clock } from 'lucide-react';
 import { Card, Button, Badge } from '../shared';
 import ProgressIndicator from './ProgressIndicator';
+import contentstackService from '../../services/contentstackService';
+import { 
+  ComparePageContent, 
+  ComparisonCategory, 
+  FeaturedComparison,
+  transformCategories,
+  transformFeaturedComparisons
+} from '../../types/ComparePageContent';
 import './CompareHub.css';
 
-const categories = [
-  {
-    id: 'mobile-phones',
-    title: 'Mobile Phones',
-    description: 'Compare smartphones from all major brands',
-    icon: Smartphone,
-    available: true,
-    count: '100+',
-    color: '#667eea',
-    route: '/compare/mobile-phones'
-  },
-  {
-    id: 'laptops',
-    title: 'Laptops',
-    description: 'Coming soon - Compare laptops and notebooks',
-    icon: Laptop,
-    available: false,
-    count: 'Soon',
-    color: '#10b981',
-    route: '/compare/laptops'
-  },
-  {
-    id: 'audio',
-    title: 'Audio Devices',
-    description: 'Coming soon - Compare headphones and speakers',
-    icon: Headphones,
-    available: false,
-    count: 'Soon',
-    color: '#f59e0b',
-    route: '/compare/audio'
-  }
-];
-
-const quickComparisons = [
-  {
-    title: 'iPhone 16 Pro vs Samsung S24 Ultra',
-    category: 'Flagship Battle',
-    popularity: 'trending',
-    route: '/compare/iphone-16-pro-vs-samsung-galaxy-s24-ultra'
-  },
-  {
-    title: 'Google Pixel 9 vs OnePlus 12',
-    category: 'AI vs Speed',
-    popularity: 'hot',
-    route: '/compare/google-pixel-9-vs-oneplus-12'
-  },
-  {
-    title: 'iPhone 16 vs Google Pixel 9',
-    category: 'Best Value',
-    popularity: 'popular',
-    route: '/compare/iphone-16-vs-google-pixel-9'
-  }
-];
+// Icon mapping for dynamic icon rendering
+const iconMap: Record<string, React.ComponentType<any>> = {
+  Smartphone,
+  Laptop,
+  Headphones,
+  TrendingUp,
+  Clock
+};
 
 const CompareHub: React.FC = () => {
   const navigate = useNavigate();
+  const [pageContent, setPageContent] = useState<ComparePageContent | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [featuredComparisons, setFeaturedComparisons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCategorySelect = (category: typeof categories[0]) => {
+  useEffect(() => {
+    const loadComparePageData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [pageData, categoriesData, comparisonsData] = await Promise.all([
+          contentstackService.getComparePageContent(),
+          contentstackService.getComparisonCategories(),
+          contentstackService.getFeaturedComparisons()
+        ]);
+
+        setPageContent(pageData);
+        setCategories(transformCategories(categoriesData));
+        setFeaturedComparisons(transformFeaturedComparisons(comparisonsData));
+        
+      } catch (error: any) {
+        console.error('Failed to load compare page data:', error);
+        setError(error.message || 'Failed to load page content');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadComparePageData();
+  }, []);
+
+  const handleCategorySelect = (category: any) => {
     if (category.available) {
       if (category.id === 'mobile-phones') {
         // For mobile phones, go to browse page where users can select phones to compare
@@ -81,24 +76,77 @@ const CompareHub: React.FC = () => {
     navigate('/browse');
   };
 
+  // Get icon component from name
+  const getIcon = (iconName: string) => {
+    return iconMap[iconName] || Smartphone;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="compare-hub">
+        <div className="compare-hub__container">
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: '400px',
+            fontSize: '18px',
+            color: '#64748b'
+          }}>
+            Loading compare page...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !pageContent) {
+    return (
+      <div className="compare-hub">
+        <div className="compare-hub__container">
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: '400px',
+            textAlign: 'center',
+            gap: '1rem'
+          }}>
+            <h2 style={{ color: '#dc2626' }}>Failed to load page content</h2>
+            <p style={{ color: '#64748b' }}>{error}</p>
+            <Button variant="primary" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="compare-hub">
       <div className="compare-hub__container">
         {/* Header Section */}
         <div className="compare-hub__header">
-          <ProgressIndicator currentStep={1} totalSteps={4} />
-          <h1 className="compare-hub__title">What would you like to compare?</h1>
+          <ProgressIndicator 
+            currentStep={pageContent.page_header.progress_current_step || 1} 
+            totalSteps={pageContent.page_header.progress_total_steps || 4} 
+          />
+          <h1 className="compare-hub__title">{pageContent.page_header.main_title}</h1>
           <p className="compare-hub__subtitle">
-            Select a category to start comparing devices and find the perfect match for your needs.
+            {pageContent.page_header.subtitle}
           </p>
         </div>
 
         {/* Category Selection */}
         <section className="compare-hub__section">
-          <h2 className="compare-hub__section-title">Choose a Category</h2>
+          <h2 className="compare-hub__section-title">{pageContent.category_selection.section_title}</h2>
           <div className="compare-hub__categories">
             {categories.map((category) => {
-              const Icon = category.icon;
+              const Icon = getIcon(category.icon);
               return (
                 <Card
                   key={category.id}
@@ -135,7 +183,7 @@ const CompareHub: React.FC = () => {
                       iconPosition="right"
                       disabled={!category.available}
                     >
-                      {category.available ? 'Compare Now' : 'Coming Soon'}
+                      {category.buttonText}
                     </Button>
                   </div>
                 </Card>
@@ -148,20 +196,24 @@ const CompareHub: React.FC = () => {
         <section className="compare-hub__section">
           <div className="compare-hub__section-header">
             <h2 className="compare-hub__section-title">
-              <TrendingUp className="compare-hub__section-icon" />
-              Popular Comparisons
+              {pageContent.popular_comparisons.section_icon && (
+                <span className="compare-hub__section-icon">
+                  {React.createElement(getIcon(pageContent.popular_comparisons.section_icon))}
+                </span>
+              )}
+              {pageContent.popular_comparisons.section_title}
             </h2>
             <Button 
               variant="outline" 
               size="sm"
               onClick={handleBrowseAll}
             >
-              Browse All Phones
+              {pageContent.popular_comparisons.browse_button_text}
             </Button>
           </div>
           
           <div className="compare-hub__quick-comparisons">
-            {quickComparisons.map((comparison, index) => (
+            {featuredComparisons.map((comparison, index) => (
               <Card
                 key={index}
                 className="compare-hub__quick-comparison"
@@ -174,8 +226,7 @@ const CompareHub: React.FC = () => {
                     variant={comparison.popularity === 'trending' ? 'success' : 'primary'}
                     size="sm"
                   >
-                    {comparison.popularity === 'trending' ? '🔥 Trending' : 
-                     comparison.popularity === 'hot' ? '🌟 Hot' : '📈 Popular'}
+                    {comparison.badgeText}
                   </Badge>
                   <Badge variant="default" size="sm">
                     {comparison.category}
@@ -196,15 +247,17 @@ const CompareHub: React.FC = () => {
         <section className="compare-hub__help">
           <Card className="compare-hub__help-card" variant="gradient">
             <div className="compare-hub__help-content">
-              <Clock size={24} />
+              {pageContent.help_section.help_icon && 
+                React.createElement(getIcon(pageContent.help_section.help_icon), { size: 24 })
+              }
               <div>
-                <h3 className="compare-hub__help-title">Need Help Choosing?</h3>
+                <h3 className="compare-hub__help-title">{pageContent.help_section.help_title}</h3>
                 <p className="compare-hub__help-description">
-                  Not sure which phones to compare? Browse our complete database or check out our buying guide.
+                  {pageContent.help_section.help_description}
                 </p>
               </div>
               <Button variant="outline" onClick={handleBrowseAll}>
-                Browse All Phones
+                {pageContent.help_section.cta_button_text}
               </Button>
             </div>
           </Card>
