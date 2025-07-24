@@ -60,6 +60,23 @@ let globalStack: any = null;
 export const createStack = () => {
   if (globalStack) return globalStack;
   
+  // Get correct preview host based on region
+  const getPreviewHost = (): string => {
+    const region = process.env.REACT_APP_CONTENTSTACK_REGION?.toLowerCase() || 'us';
+    
+    switch (region) {
+      case 'eu':
+        return 'eu-rest-preview.contentstack.com';
+      case 'azure-na':
+        return 'azure-na-rest-preview.contentstack.com';
+      case 'azure-eu':
+        return 'azure-eu-rest-preview.contentstack.com';
+      case 'us':
+      default:
+        return 'rest-preview.contentstack.com';
+    }
+  };
+  
   const stackConfig: any = {
     api_key: process.env.REACT_APP_CONTENTSTACK_API_KEY!,
     delivery_token: process.env.REACT_APP_CONTENTSTACK_DELIVERY_TOKEN!,
@@ -67,14 +84,24 @@ export const createStack = () => {
     region: Contentstack.Region.US,
     live_preview: {
       enable: true,
-      host: 'rest-preview.contentstack.com'
+      host: getPreviewHost()
     }
   };
 
-  const previewToken = getPreviewToken();
+  // Use preview token from URL or environment variable
+  const urlPreviewToken = getPreviewToken();
+  const envPreviewToken = process.env.REACT_APP_CONTENTSTACK_PREVIEW_TOKEN;
+  const previewToken = urlPreviewToken || envPreviewToken;
+  
   if (previewToken) {
     stackConfig.live_preview.preview_token = previewToken;
+    console.log('🔑 Using preview token for Live Preview:', previewToken.substring(0, 8) + '...');
+  } else {
+    console.warn('⚠️ No preview token found - Live Preview may not work properly');
+    console.warn('   Add REACT_APP_CONTENTSTACK_PREVIEW_TOKEN to your .env file');
   }
+  
+  console.log('🌐 Preview host configured:', stackConfig.live_preview.host);
 
   globalStack = Contentstack.Stack(stackConfig);
   return globalStack;
@@ -150,10 +177,14 @@ export const initializeLivePreview = async (): Promise<void> => {
       visualBuilderBaseUrl: getAppHost(),
     };
 
-    // Add preview token if available
-    const previewToken = getPreviewToken();
+    // Add preview token if available (URL or environment)
+    const urlPreviewToken = getPreviewToken();
+    const envPreviewToken = process.env.REACT_APP_CONTENTSTACK_PREVIEW_TOKEN;
+    const previewToken = urlPreviewToken || envPreviewToken;
+    
     if (previewToken) {
       config.stackDetails.preview_token = previewToken;
+      console.log('🔑 Live Preview Utils using preview token:', previewToken.substring(0, 8) + '...');
     }
     
     console.log('🔍 Live Preview config:', {
