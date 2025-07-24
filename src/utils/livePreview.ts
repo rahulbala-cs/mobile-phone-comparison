@@ -4,11 +4,11 @@
 import ContentstackLivePreview, { VB_EmptyBlockParentClass } from '@contentstack/live-preview-utils';
 import * as Contentstack from 'contentstack';
 
-// Enhanced preview mode detection
+// Always-active preview mode for working site
 export const isPreviewMode = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  // Check for live preview parameters
+  // Check for live preview parameters (still supported for compatibility)
   const urlParams = new URLSearchParams(window.location.search);
   const hasPreviewParams = urlParams.has('live_preview') || 
                           urlParams.has('contentstack_live_preview') ||
@@ -20,31 +20,28 @@ export const isPreviewMode = (): boolean => {
   // Check if in iframe (Visual Builder)
   const isInIframe = window !== window.top;
   
-  // Check for development mode with preview enabled
-  const isDevWithPreview = process.env.NODE_ENV === 'development' && 
-                          process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW === 'true';
+  // Check for Live Preview enabled in environment
+  const isLivePreviewEnabled = process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW === 'true';
   
   // For testing, also check for specific test routes
   const isTestRoute = window.location.pathname.includes('visual-builder-test');
   
-  // DO NOT force preview mode for development - this causes interference
-  const forcePreviewForDev = false;
-  
   if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 Preview Mode Detection:', {
+    console.log('🔍 Preview Mode Detection (Always Active):', {
       hasPreviewParams,
       isInIframe,
-      isDevWithPreview,
+      isLivePreviewEnabled,
       isTestRoute,
-      forcePreviewForDev,
       currentURL: window.location.href,
       params: Object.fromEntries(urlParams),
-      userAgent: navigator.userAgent.includes('Contentstack')
+      userAgent: navigator.userAgent.includes('Contentstack'),
+      alwaysActive: true
     });
   }
   
-  // Only enable for actual preview scenarios
-  return hasPreviewParams || isInIframe || isDevWithPreview || isTestRoute;
+  // ALWAYS ACTIVE: Enable Live Preview for working site
+  // This makes Visual Builder and edit tags available on all pages
+  return true;
 };
 
 // Get preview token from URL
@@ -83,21 +80,10 @@ export const createStack = () => {
   return globalStack;
 };
 
-// Initialize Live Preview - MINIMAL implementation
+// Initialize Live Preview - Always active for working site
 export const initializeLivePreview = async (): Promise<void> => {
-  const inPreviewMode = isPreviewMode();
-  
-  if (!inPreviewMode) {
-    console.log('❌ Not in preview mode, skipping Live Preview initialization');
-    console.log('💡 To test Visual Builder, try:');
-    console.log('   - Add ?live_preview=true to URL');
-    console.log('   - Or access through Contentstack Visual Builder');
-    console.log('   - Or visit /visual-builder-test route');
-    return;
-  }
-
   try {
-    console.log('🔧 Initializing Live Preview for Visual Builder');
+    console.log('🔧 Initializing Live Preview for Visual Builder (Always Active)');
 
     // Create Stack instance FIRST
     const Stack = createStack();
