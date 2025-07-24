@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, Laptop, Headphones, ArrowRight, TrendingUp, Clock } from 'lucide-react';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../../utils/livePreview';
 import { Card, Button, Badge } from '../shared';
 import ProgressIndicator from './ProgressIndicator';
 import contentstackService from '../../services/contentstackService';
 import { 
   ComparePageContent, 
-  ComparisonCategory, 
-  FeaturedComparison,
   transformCategories,
   transformFeaturedComparisons
 } from '../../types/ComparePageContent';
@@ -135,16 +134,20 @@ const CompareHub: React.FC = () => {
             currentStep={pageContent.page_header.progress_current_step || 1} 
             totalSteps={pageContent.page_header.progress_total_steps || 4} 
           />
-          <h1 className="compare-hub__title">{pageContent.page_header.main_title}</h1>
-          <p className="compare-hub__subtitle">
+          <h1 className="compare-hub__title" {...getEditAttributes(pageContent.page_header.main_title)}>
+            {pageContent.page_header.main_title}
+          </h1>
+          <p className="compare-hub__subtitle" {...getEditAttributes(pageContent.page_header.subtitle)}>
             {pageContent.page_header.subtitle}
           </p>
         </div>
 
         {/* Category Selection */}
         <section className="compare-hub__section">
-          <h2 className="compare-hub__section-title">{pageContent.category_selection.section_title}</h2>
-          <div className="compare-hub__categories">
+          <h2 className="compare-hub__section-title" {...getEditAttributes(pageContent.category_selection.section_title)}>
+            {pageContent.category_selection.section_title}
+          </h2>
+          <div className={`compare-hub__categories ${categories.length ? '' : VB_EmptyBlockParentClass}`}>
             {categories.map((category) => {
               const Icon = getIcon(category.icon);
               return (
@@ -171,8 +174,12 @@ const CompareHub: React.FC = () => {
                   </div>
                   
                   <div className="compare-hub__category-content">
-                    <h3 className="compare-hub__category-title">{category.title}</h3>
-                    <p className="compare-hub__category-description">{category.description}</p>
+                    <h3 className="compare-hub__category-title" {...getEditAttributes(category.title)}>
+                      {category.title}
+                    </h3>
+                    <p className="compare-hub__category-description" {...getEditAttributes(category.description)}>
+                      {category.description}
+                    </p>
                   </div>
                   
                   <div className="compare-hub__category-action">
@@ -195,7 +202,7 @@ const CompareHub: React.FC = () => {
         {/* Quick Start Comparisons */}
         <section className="compare-hub__section">
           <div className="compare-hub__section-header">
-            <h2 className="compare-hub__section-title">
+            <h2 className="compare-hub__section-title" {...getEditAttributes(pageContent.popular_comparisons.section_title)}>
               {pageContent.popular_comparisons.section_icon && (
                 <span className="compare-hub__section-icon">
                   {React.createElement(getIcon(pageContent.popular_comparisons.section_icon))}
@@ -207,12 +214,13 @@ const CompareHub: React.FC = () => {
               variant="outline" 
               size="sm"
               onClick={handleBrowseAll}
+              {...getEditAttributes(pageContent.popular_comparisons.browse_button_text)}
             >
               {pageContent.popular_comparisons.browse_button_text}
             </Button>
           </div>
           
-          <div className="compare-hub__quick-comparisons">
+          <div className={`compare-hub__quick-comparisons ${featuredComparisons.length ? '' : VB_EmptyBlockParentClass}`}>
             {featuredComparisons.map((comparison, index) => (
               <Card
                 key={index}
@@ -233,7 +241,9 @@ const CompareHub: React.FC = () => {
                   </Badge>
                 </div>
                 
-                <h3 className="compare-hub__comparison-title">{comparison.title}</h3>
+                <h3 className="compare-hub__comparison-title" {...getEditAttributes(comparison.title)}>
+                  {comparison.title}
+                </h3>
                 
                 <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
                   Compare Now
@@ -251,12 +261,14 @@ const CompareHub: React.FC = () => {
                 React.createElement(getIcon(pageContent.help_section.help_icon), { size: 24 })
               }
               <div>
-                <h3 className="compare-hub__help-title">{pageContent.help_section.help_title}</h3>
-                <p className="compare-hub__help-description">
+                <h3 className="compare-hub__help-title" {...getEditAttributes(pageContent.help_section.help_title)}>
+                  {pageContent.help_section.help_title}
+                </h3>
+                <p className="compare-hub__help-description" {...getEditAttributes(pageContent.help_section.help_description)}>
                   {pageContent.help_section.help_description}
                 </p>
               </div>
-              <Button variant="outline" onClick={handleBrowseAll}>
+              <Button variant="outline" onClick={handleBrowseAll} {...getEditAttributes(pageContent.help_section.cta_button_text)}>
                 {pageContent.help_section.cta_button_text}
               </Button>
             </div>

@@ -12,6 +12,7 @@ import ErrorBoundary, { LivePreviewErrorBoundary } from './components/shared/Err
 import { DefaultPersonalizeProvider } from './contexts/PersonalizeContext';
 import { FALLBACK_CONFIG } from './config/fallbacks';
 import { isPersonalizationEnabled, logPersonalizeEvent } from './utils/personalizeUtils';
+import { initializeLivePreview } from './utils/livePreview';
 import Personalize from '@contentstack/personalize-edge-sdk';
 import './App.css';
 import './components/shared/ErrorBoundary.css';
@@ -176,6 +177,14 @@ function App() {
         timestamp: new Date().toISOString(),
       });
     }
+  }, []);
+  
+  // Initialize Live Preview for Visual Builder (global initialization)
+  useEffect(() => {
+    initializeLivePreview().catch((error) => {
+      console.warn('Live Preview initialization failed:', error);
+      // Non-blocking - app should continue to work without Live Preview
+    });
   }, []);
 
   return (

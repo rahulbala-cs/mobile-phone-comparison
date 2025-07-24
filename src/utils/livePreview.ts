@@ -110,6 +110,18 @@ export const initializeLivePreview = async (): Promise<void> => {
       console.warn('   Please add your management token to .env file for full Visual Builder functionality');
     }
 
+    // Get the correct app host URL based on region and environment
+    const getAppHost = (): string => {
+      // Use environment variable if provided
+      const envAppHost = process.env.REACT_APP_CONTENTSTACK_APP_HOST;
+      if (envAppHost && envAppHost !== 'app.contentstack.com') {
+        return `https://${envAppHost}`;
+      }
+      
+      // Default to US region app host
+      return 'https://app.contentstack.com';
+    };
+
     // Enhanced Live Preview Utils configuration for Visual Builder
     const config: any = {
       stackSdk: Stack,
@@ -120,7 +132,10 @@ export const initializeLivePreview = async (): Promise<void> => {
         ...(managementToken && managementToken !== 'your_management_token_here' && {
           managementToken: managementToken,
           branch: process.env.REACT_APP_CONTENTSTACK_BRANCH || 'main'
-        })
+        }),
+        // CRITICAL: Set the correct app host for edit URLs
+        host: getAppHost().replace('https://', ''),
+        region: process.env.REACT_APP_CONTENTSTACK_REGION?.toLowerCase() || 'us'
       },
       mode: 'builder', // Force builder mode to show Start Editing button
       enable: true,
@@ -139,16 +154,14 @@ export const initializeLivePreview = async (): Promise<void> => {
       includeOwnerInfo: true,
       editableTags: true,
       hash: window.location.hash || '',
-      // FIXED: Proper URL configuration for Visual Builder
+      // CRITICAL: This controls where edit URLs point to
       clientUrlParams: {
-        protocol: window.location.protocol.replace(':', ''),
-        host: window.location.hostname,
-        port: window.location.port || (window.location.protocol === 'https:' ? '443' : '80'),
-        url: window.location.origin + window.location.pathname
+        protocol: 'https',
+        host: getAppHost().replace('https://', ''),
+        port: 443
       },
-      // Add Visual Builder specific URL config
-      visualBuilderBaseUrl: 'https://app.contentstack.com',
-      region: 'us' // or your specific region
+      // CRITICAL: Proper Visual Builder app host configuration
+      visualBuilderBaseUrl: getAppHost(),
     };
 
     // Add preview token if available
@@ -159,8 +172,13 @@ export const initializeLivePreview = async (): Promise<void> => {
     
     console.log('🔍 Live Preview config:', {
       ...config,
-      stackSdk: '<<Stack Instance>>'
+      stackSdk: '<<Stack Instance>>',
+      visualBuilderBaseUrl: config.visualBuilderBaseUrl,
+      clientUrlParams: config.clientUrlParams,
+      mode: config.mode
     });
+    
+    console.log('🌍 Visual Builder edit URLs will point to:', `${config.clientUrlParams.protocol}://${config.clientUrlParams.host}`);
 
     // Wait a moment for Stack to be fully ready
     await new Promise(resolve => setTimeout(resolve, 100));

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 import { Card, Button, Badge } from '../shared';
 import { HomePageContent, Comparison } from '../../types/HomePageContent';
-import { getEditAttributes } from '../../utils/livePreview';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../../utils/livePreview';
 import { FallbackHelper } from '../../config/fallbacks';
 import { getFieldValue } from '../../types/EditableTags';
 import './FeaturedComparisons.css';
@@ -72,7 +72,7 @@ const FeaturedComparisons: React.FC<FeaturedComparisonsProps> = React.memo(({ co
           </Button>
         </div>
 
-        <div className="featured-comparisons__grid">
+        <div className={`featured-comparisons__grid ${comparisons.length ? '' : VB_EmptyBlockParentClass}`}>
           {comparisons.map((comparison, index) => (
             <Card 
               key={index}

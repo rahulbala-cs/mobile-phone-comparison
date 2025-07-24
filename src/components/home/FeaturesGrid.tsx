@@ -2,7 +2,7 @@ import React from 'react';
 import { BarChart3, Smartphone, DollarSign, Zap, Shield, Users, Star, Clock, Award, TrendingUp } from 'lucide-react';
 import { Card } from '../shared';
 import { HomePageContent, Feature } from '../../types/HomePageContent';
-import { getEditAttributes } from '../../utils/livePreview';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../../utils/livePreview';
 import { getFieldValue } from '../../types/EditableTags';
 import './FeaturesGrid.css';
 
@@ -38,7 +38,7 @@ const FeaturesGrid: React.FC<FeaturesGridProps> = ({ content, features }) => {
           </p>
         </div>
         
-        <div className="features__grid">
+        <div className={`features__grid ${features.length ? '' : VB_EmptyBlockParentClass}`}>
           {features.map((feature, index) => {
             const Icon = iconMap[feature.icon_name] || Smartphone; // Default to Smartphone icon if not found
             return (
