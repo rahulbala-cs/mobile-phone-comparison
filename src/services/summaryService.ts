@@ -1,4 +1,5 @@
-import { MobilePhone, getFieldValue } from '../types/MobilePhone';
+import { MobilePhone } from '../types/MobilePhone';
+import { getFieldValue } from '../types/EditableTags';
 
 export interface SummaryRequest {
   phones: MobilePhone[];
@@ -193,4 +194,5 @@ class SummaryService {
   }
 }
 
-export default new SummaryService();
+const summaryService = new SummaryService();
+export default summaryService;
