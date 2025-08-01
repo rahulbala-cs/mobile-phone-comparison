@@ -14,9 +14,10 @@
     "@types/node": "^16.18.126",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "contentstack": "^3.25.3",
-    "dotenv": "^17.0.1",
+    "contentstack": "^3.26.1",
+    "dotenv": "^17.2.1",
     "lucide-react": "^0.525.0",
+    "node-fetch": "^3.3.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-helmet-async": "^2.0.5",
@@ -37,6 +38,9 @@
       "react-app/jest"
     ]
   },
+  "engines": {
+    "node": "20.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -54,5 +58,9 @@
       "react": "^19.1.0",
       "react-dom": "^19.1.0"
     }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "playwright": "^1.54.2"
   }
 }
