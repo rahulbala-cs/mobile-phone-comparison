@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { X, ShoppingCart, Eye, Plus } from 'lucide-react';
-import { MobilePhone, getFieldValue } from '../types/MobilePhone';
+import { MobilePhone } from '../types/MobilePhone';
+import { getFieldValue } from '../types/EditableTags';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
@@ -35,6 +36,7 @@ const MobilePhoneComparison: React.FC = () => {
   const [showOnlyDifferences, setShowOnlyDifferences] = useState<boolean>(false);
   const [showPhoneSelector, setShowPhoneSelector] = useState<boolean>(false);
   const [selectingSlot, setSelectingSlot] = useState<number | null>(null);
+  const [isSelectingPhone, setIsSelectingPhone] = useState<boolean>(false);
   const [imageGallery, setImageGallery] = useState<ImageGalleryState>({
     phone: null,
     isOpen: false,
@@ -52,7 +54,7 @@ const MobilePhoneComparison: React.FC = () => {
   // Track page view with dynamic title
   const validPhones = phones.filter(phone => phone !== null) as MobilePhone[];
   const pageTitle = validPhones.length > 0 
-    ? `Compare ${validPhones.map(p => p.title).join(' vs ')} - Mobile Compare`
+    ? `Compare ${validPhones.map(p => getFieldValue(p.title)).join(' vs ')} - Mobile Compare`
     : 'Mobile Phone Comparison - Mobile Compare';
   
   usePageView(
@@ -119,12 +121,16 @@ const MobilePhoneComparison: React.FC = () => {
 
       const [foundPhones] = await Promise.all(promises);
       
-      if (foundPhones.length !== slugs.length) {
+      if (foundPhones.length < 2) {
+        // Only error if we can't do a comparison (need at least 2 phones)
         setError({
-          message: `Could not find all requested phones. Found ${foundPhones.length} of ${slugs.length} phones.`,
+          message: `Could not find enough phones for comparison. Found ${foundPhones.length} of ${slugs.length} phones. Please check the phone names in the URL.`,
           code: 'PHONES_NOT_FOUND'
         });
         return;
+      } else if (foundPhones.length !== slugs.length) {
+        // Warning but continue with partial comparison
+        console.warn(`⚠️ Partial comparison: Found ${foundPhones.length} of ${slugs.length} requested phones`);
       }
 
       // Set up phones array
@@ -190,11 +196,38 @@ const MobilePhoneComparison: React.FC = () => {
   const removePhone = (index: number) => {
     const newPhones = [...phones];
     newPhones[index] = null;
-    setPhones(newPhones);
+    
+    // Compact array to remove gaps and maintain proper positioning
+    const compactedPhones = newPhones.filter(phone => phone !== null);
+    
+    // Fill remaining slots with null to maintain 4-slot array structure
+    const finalPhones = [...compactedPhones];
+    while (finalPhones.length < 4) {
+      finalPhones.push(null);
+    }
+    
+    setPhones(finalPhones);
+    
+    // Track comparison completion if we now have fewer than 2 phones
+    const validNewPhones = compactedPhones as MobilePhone[];
+    if (validNewPhones.length < 2 && globalPersonalize.isReady) {
+      const duration = Date.now() - comparisonStartTime.current;
+      const phoneUids = validNewPhones.map(p => p.uid);
+      trackComparisonCompleted(phoneUids, duration);
+    }
   };
 
-  const addPhone = async (index: number) => {
-    setSelectingSlot(index);
+  const addPhone = async () => {
+    // Find the first empty slot
+    const emptySlotIndex = phones.findIndex(phone => phone === null);
+    
+    if (emptySlotIndex === -1) {
+      // All slots are full, can't add more phones
+      console.warn('All comparison slots are full (maximum 4 phones)');
+      return;
+    }
+    
+    setSelectingSlot(emptySlotIndex);
     
     // Lazy load all phones only when selector is opened
     if (allPhones.length === 0) {
@@ -213,31 +246,61 @@ const MobilePhoneComparison: React.FC = () => {
   };
 
   const handlePhoneSelect = async (phone: MobilePhone) => {
-    if (selectingSlot !== null) {
-      const newPhones = [...phones];
-      newPhones[selectingSlot] = phone;
-      setPhones(newPhones);
-      
-      // Track phone view and update personalization attributes
-      if (globalPersonalize.isReady) {
-        await trackPhoneView({
-          uid: phone.uid,
-          title: typeof phone.title === 'string' ? phone.title : String(phone.title),
-          brand: phone.taxonomies?.[0]?.term_uid || undefined,
-          price: phone.variants?.[0]?.price || undefined
-        });
+    setIsSelectingPhone(true);
+    
+    try {
+      if (selectingSlot !== null) {
+        const newPhones = [...phones];
+        newPhones[selectingSlot] = phone;
+        setPhones(newPhones);
         
-        // If this creates a valid comparison (2+ phones), track it
-        const validNewPhones = newPhones.filter(p => p !== null) as MobilePhone[];
-        if (validNewPhones.length >= 2) {
-          const phoneUids = validNewPhones.map(p => p.uid);
-          await trackComparisonStarted(phoneUids);
-          comparisonStartTime.current = Date.now();
+        // Track phone view and update personalization attributes with timeout protection
+        if (globalPersonalize.isReady) {
+          try {
+            // Set a timeout for tracking to prevent hanging
+            const trackingPromise = Promise.race([
+              trackPhoneView({
+                uid: phone.uid,
+                title: getFieldValue(phone.title),
+                brand: phone.taxonomies?.[0]?.term_uid || undefined,
+                price: getPrice(phone) || undefined
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Tracking timeout')), 2000))
+            ]);
+            
+            await trackingPromise;
+            
+            // If this creates a valid comparison (2+ phones), track it
+            const validNewPhones = newPhones.filter(p => p !== null) as MobilePhone[];
+            if (validNewPhones.length >= 2) {
+              const phoneUids = validNewPhones.map(p => p.uid);
+              
+              const comparisonPromise = Promise.race([
+                trackComparisonStarted(phoneUids),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Comparison tracking timeout')), 2000))
+              ]);
+              
+              await comparisonPromise;
+              comparisonStartTime.current = Date.now();
+            }
+          } catch (trackingError) {
+            console.warn('Phone tracking failed (non-critical):', trackingError);
+            // Continue with phone selection even if tracking fails
+          }
         }
+        
+        // Small delay to ensure UI updates are processed
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
+    } catch (error) {
+      console.error('Failed to select phone:', error);
+      // Even if there's an error, we should still close the modal
+    } finally {
+      // Always close the modal and reset state, regardless of success or failure
+      setIsSelectingPhone(false);
+      setShowPhoneSelector(false);
+      setSelectingSlot(null);
     }
-    setShowPhoneSelector(false);
-    setSelectingSlot(null);
   };
 
   const getImageCount = (phone: MobilePhone) => {
@@ -259,6 +322,25 @@ const MobilePhoneComparison: React.FC = () => {
   const closeImageGallery = useCallback(() => {
     setImageGallery({ phone: null, isOpen: false, currentImage: 0 });
   }, []);
+
+  // Navigate to phone detail page
+  const handlePhoneDetailClick = useCallback((phone: MobilePhone) => {
+    try {
+      // First try to use the phone's URL field if it exists
+      const phoneUrl = getFieldValue(phone.url);
+      if (phoneUrl && typeof phoneUrl === 'string') {
+        navigate(phoneUrl);
+        return;
+      }
+      
+      // Fallback to UID-based URL
+      navigate(`/mobiles/${phone.uid}`);
+    } catch (error) {
+      console.warn('Error navigating to phone detail:', error);
+      // Fallback to UID
+      navigate(`/mobiles/${phone.uid}`);
+    }
+  }, [navigate]);
 
   const setCurrentImage = (index: number) => {
     setImageGallery(prev => ({ ...prev, currentImage: index }));
@@ -295,9 +377,10 @@ const MobilePhoneComparison: React.FC = () => {
     try {
       const values = validPhones.map(phone => {
         if (!phone?.specifications) return 'N/A';
-        const specs = getFieldValue(phone.specifications);
-        if (!specs || typeof specs !== 'object') return 'N/A';
-        return specs[specKey as keyof typeof specs] || 'N/A';
+        const specValue = phone.specifications[specKey as keyof typeof phone.specifications];
+        if (!specValue) return 'N/A';
+        const fieldValue = getFieldValue(specValue);
+        return typeof fieldValue === 'string' ? fieldValue : String(fieldValue || 'N/A');
       });
       const uniqueValues = new Set(values);
       return uniqueValues.size > 1;
@@ -314,10 +397,12 @@ const MobilePhoneComparison: React.FC = () => {
     
     const specValues = phones.map(phone => {
       if (!phone?.specifications) return { phone, rawValue: 'N/A', numericValue: null };
-      const specs = getFieldValue(phone.specifications);
-      if (!specs || typeof specs !== 'object') return { phone, rawValue: 'N/A', numericValue: null };
       
-      const rawValue = specs[specKey as keyof typeof specs] || 'N/A';
+      const specValue = phone.specifications[specKey as keyof typeof phone.specifications];
+      if (!specValue) return { phone, rawValue: 'N/A', numericValue: null };
+      
+      const fieldValue = getFieldValue(specValue);
+      const rawValue = typeof fieldValue === 'string' ? fieldValue : String(fieldValue || 'N/A');
       const numericValue = extractNumericValue(rawValue);
       
       return { phone, rawValue, numericValue };
@@ -415,7 +500,8 @@ const MobilePhoneComparison: React.FC = () => {
       const variants = getFieldValue(phone.variants);
       if (variants && Array.isArray(variants) && variants.length > 0) {
         const firstVariant = variants[0];
-        return firstVariant && typeof firstVariant === 'object' && 'price' in firstVariant ? firstVariant.price : null;
+        return firstVariant && typeof firstVariant === 'object' && 'price' in firstVariant 
+          ? getFieldValue(firstVariant.price) : null;
       }
       return null;
     } catch (error) {
@@ -441,18 +527,56 @@ const MobilePhoneComparison: React.FC = () => {
     const phoneCount = validPhones.length;
     const maxSlots = 4; // Maximum comparison slots
     
-    // Safety check for valid phone count
-    if (phoneCount < 0 || phoneCount > maxSlots) {
+    // Safety check for valid phone count with better edge case handling
+    if (phoneCount < 0) {
+      console.warn('Invalid phone count: negative value');
       return {
         labelWidth: '160px',
-        cardColumns: '1fr',
-        comparisonColumns: '1fr',
-        unifiedGrid: '160px 1fr',
-        cardSlots: 1,
+        unifiedGrid: '160px',
+        cardGrid: '160px',
+        comparisonGrid: '160px',
+        cardSlots: 0,
         comparisonSlots: 0,
         phoneCount: 0,
         minPhoneColumnWidth: '280px',
         isMobile: false
+      };
+    }
+    
+    if (phoneCount === 0) {
+      return {
+        labelWidth: '160px',
+        unifiedGrid: '160px',
+        cardGrid: '160px',
+        comparisonGrid: '160px',
+        cardSlots: 0,
+        comparisonSlots: 0,
+        phoneCount: 0,
+        minPhoneColumnWidth: '280px',
+        isMobile: windowWidth <= 768
+      };
+    }
+    
+    if (phoneCount > maxSlots) {
+      console.warn(`Phone count (${phoneCount}) exceeds maximum slots (${maxSlots}), limiting to ${maxSlots}`);
+      // Use only the first maxSlots phones
+      const limitedPhoneCount = maxSlots;
+      const isMobile = windowWidth <= 768;
+      const labelWidth = isMobile ? '100px' : '160px';
+      const minPhoneColumnWidth = isMobile ? '140px' : '220px';
+      const phoneColumnsTemplate = `repeat(${limitedPhoneCount}, minmax(${minPhoneColumnWidth}, 1fr))`;
+      const unifiedGrid = `${labelWidth} ${phoneColumnsTemplate}`;
+      
+      return {
+        labelWidth,
+        minPhoneColumnWidth,
+        unifiedGrid,
+        cardGrid: unifiedGrid,
+        comparisonGrid: unifiedGrid,
+        cardSlots: limitedPhoneCount,
+        comparisonSlots: limitedPhoneCount,
+        phoneCount: limitedPhoneCount,
+        isMobile
       };
     }
     
@@ -469,11 +593,9 @@ const MobilePhoneComparison: React.FC = () => {
     const phoneColumnsTemplate = `repeat(${phoneCount}, minmax(${minPhoneColumnWidth}, 1fr))`;
     const unifiedGrid = `${labelWidth} ${phoneColumnsTemplate}`;
     
-    // For product cards: show phones + Add Phone slot (if not full)
-    const cardSlots = Math.min(phoneCount + (phoneCount < maxSlots ? 1 : 0), maxSlots);
-    const cardGridTemplate = phoneCount < maxSlots 
-      ? `${labelWidth} ${phoneColumnsTemplate} minmax(${minPhoneColumnWidth}, 1fr)`
-      : unifiedGrid;
+    // For product cards: show only actual phones (no add phone slot in grid)
+    const cardSlots = phoneCount;
+    const cardGridTemplate = unifiedGrid;
     
     return {
       labelWidth,
@@ -495,11 +617,14 @@ const MobilePhoneComparison: React.FC = () => {
       <div className="msp-comparison">
         {/* Comparison Skeleton UI */}
         <div className="msp-product-cards-container">
-          <div className="msp-product-cards" style={{
-            gridTemplateColumns: '160px repeat(2, minmax(280px, 1fr))',
-            opacity: 0.6,
-            pointerEvents: 'none'
-          }}>
+          <div 
+            className="msp-product-cards" 
+            data-phone-count="2"
+            style={{
+              opacity: 0.6,
+              pointerEvents: 'none'
+            }}
+          >
             <div className="msp-spec-label-column">
               <div className="msp-spec-label-header">Compare</div>
             </div>
@@ -598,13 +723,32 @@ const MobilePhoneComparison: React.FC = () => {
         <h2>Comparison Error</h2>
         <p>{error.message}</p>
         {error.code === 'INVALID_URL' && (
-          <p className="msp-error-help">
-            Please use the format: /compare/phone1-vs-phone2
-          </p>
+          <div className="msp-error-help">
+            <p>Please use the format: /compare/phone1-vs-phone2</p>
+            <p>Example: /compare/oneplus-13-vs-samsung-galaxy-s24-ultra</p>
+          </div>
         )}
-        <button onClick={() => navigate('/')}>
-          Back to Phone List
-        </button>
+        {error.code === 'PHONES_NOT_FOUND' && (
+          <div className="msp-error-help">
+            <p>Available phone slugs include:</p>
+            <ul>
+              <li>oneplus-13</li>
+              <li>samsung-galaxy-s24-ultra</li>
+              <li>apple-iphone-16-pro-max</li>
+              <li>oneplus-12</li>
+              <li>samsung-galaxy-s25-ultra</li>
+            </ul>
+            <p>Try using these exact phone names in your comparison URL.</p>
+          </div>
+        )}
+        <div className="msp-error-actions">
+          <button onClick={() => navigate('/')} className="msp-error-button">
+            Back to Home
+          </button>
+          <button onClick={() => navigate('/compare')} className="msp-error-button msp-error-button-secondary">
+            Start New Comparison
+          </button>
+        </div>
       </div>
     );
   }
@@ -612,8 +756,14 @@ const MobilePhoneComparison: React.FC = () => {
   return (
     <div className="msp-comparison">
       <Helmet>
-        <title>{validPhones.map(p => getFieldValue(p.title)).join(' vs ')} - Mobile Phone Comparison</title>
-        <meta name="description" content={`Compare ${validPhones.map(p => getFieldValue(p.title)).join(', ')} specifications and prices.`} />
+        <title>{validPhones.map(p => {
+          const titleValue = getFieldValue(p.title);
+          return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+        }).join(' vs ')} - Mobile Phone Comparison</title>
+        <meta name="description" content={`Compare ${validPhones.map(p => {
+          const titleValue = getFieldValue(p.title);
+          return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+        }).join(', ')} specifications and prices.`} />
       </Helmet>
 
       {/* Phone Selector Modal */}
@@ -624,8 +774,10 @@ const MobilePhoneComparison: React.FC = () => {
           onClose={() => {
             setShowPhoneSelector(false);
             setSelectingSlot(null);
+            setIsSelectingPhone(false);
           }}
           excludePhone={null}
+          isLoading={isSelectingPhone}
         />
       )}
 
@@ -634,7 +786,10 @@ const MobilePhoneComparison: React.FC = () => {
         <div className="msp-gallery-overlay" onClick={closeImageGallery}>
           <div className="msp-gallery-modal" onClick={(e) => e.stopPropagation()}>
             <div className="msp-gallery-header">
-              <h3>{getFieldValue(imageGallery.phone?.title) || 'Phone'} - Photos</h3>
+              <h3>{(() => {
+                const titleValue = getFieldValue(imageGallery.phone?.title);
+                return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+              })()} - Photos</h3>
               <button className="msp-gallery-close" onClick={closeImageGallery}>
                 <X size={24} />
               </button>
@@ -692,21 +847,17 @@ const MobilePhoneComparison: React.FC = () => {
       <div className="msp-product-cards-container">
         <div 
           className={`msp-product-cards ${VB_EmptyBlockParentClass}`}
-          style={{
-            gridTemplateColumns: gridConfig.cardGrid
-          }}
+          data-phone-count={validPhones.length}
         >
           {/* Specification Label Column */}
           <div className="msp-spec-label-column">
             <div className="msp-spec-label-header">Compare</div>
           </div>
           
-          {/* Dynamic Phone Cards - Only show filled slots + one add slot */}
-          {Array.from({ length: Math.min(gridConfig.cardSlots, 4) }, (_, index) => {
-            const phone = phones[index];
-            return (
-              <div key={index} className="msp-product-card">
-                {phone ? (
+          {/* Dynamic Phone Cards - Only show actual phones */}
+          {validPhones.map((phone, index) => (
+            <div key={phone.uid} className="msp-product-card">
+              {phone && (
                   <>
                     <button 
                       className="msp-remove-btn"
@@ -715,7 +866,19 @@ const MobilePhoneComparison: React.FC = () => {
                       <X size={16} />
                     </button>
 
-                    <div className="msp-card-content">
+                    <div 
+                      className="msp-card-content msp-clickable-card"
+                      onClick={() => handlePhoneDetailClick(phone)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handlePhoneDetailClick(phone);
+                        }
+                      }}
+                      title={`View details for ${getFieldValue(phone.title) || 'this phone'}`}
+                    >
                       <div className="msp-product-image">
                         {phone.lead_image?.url ? (
                           <img
@@ -731,9 +894,14 @@ const MobilePhoneComparison: React.FC = () => {
                         )}
                       </div>
 
-                      <h3 className="msp-product-title" {...getEditAttributes(phone.title)}>
-                        {getFieldValue(phone.title)}
-                      </h3>
+                      <div className="msp-phone-header">
+                        <h3 className="msp-product-title" {...getEditAttributes(phone.title)}>
+                          {(() => {
+                            const titleValue = getFieldValue(phone.title);
+                            return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+                          })()}
+                        </h3>
+                      </div>
 
                       <div className="msp-price">
                         {getPrice(phone) && (
@@ -747,15 +915,18 @@ const MobilePhoneComparison: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="msp-stores">
-                        {phone.amazon_link?.href && (
-                          <a href={phone.amazon_link.href} target="_blank" rel="noopener noreferrer" className="msp-store">
+                      <div 
+                        className="msp-stores"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {getFieldValue(phone.amazon_link?.href) && (
+                          <a href={getFieldValue(phone.amazon_link?.href)} target="_blank" rel="noopener noreferrer" className="msp-store">
                             <ShoppingCart size={14} />
                             Amazon
                           </a>
                         )}
-                        {phone.flipkart_link?.href && (
-                          <a href={phone.flipkart_link.href} target="_blank" rel="noopener noreferrer" className="msp-store">
+                        {getFieldValue(phone.flipkart_link?.href) && (
+                          <a href={getFieldValue(phone.flipkart_link?.href)} target="_blank" rel="noopener noreferrer" className="msp-store">
                             <ShoppingCart size={14} />
                             Flipkart
                           </a>
@@ -763,19 +934,24 @@ const MobilePhoneComparison: React.FC = () => {
                       </div>
                     </div>
                   </>
-                ) : (
-                  <div className="msp-add-phone-card" onClick={() => addPhone(index)}>
-                    <div className="msp-add-icon">
-                      <Plus size={24} />
-                    </div>
-                    <span className="msp-add-text">Add Phone</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Floating Add Phone Button */}
+      {validPhones.length < 4 && (
+        <button
+          className="msp-floating-add-phone"
+          onClick={addPhone}
+          aria-label="Add a phone to comparison"
+          title="Add Phone"
+        >
+          <Plus size={24} />
+          <span className="msp-floating-add-text">Add Phone</span>
+        </button>
+      )}
 
       {/* Overview Section */}
       <div className="msp-overview-container">
@@ -820,7 +996,10 @@ const MobilePhoneComparison: React.FC = () => {
                   />
                 )}
                 <div className="msp-sticky-name" title={getFieldValue(phone.title) || 'Phone'}>
-                  {getFieldValue(phone.title) || 'Phone'}
+                  {(() => {
+                    const titleValue = getFieldValue(phone.title);
+                    return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+                  })()}
                 </div>
               </div>
             ))}
@@ -829,10 +1008,7 @@ const MobilePhoneComparison: React.FC = () => {
           {/* Comparison Grid */}
           <div 
             className={`msp-comparison-grid ${VB_EmptyBlockParentClass}`}
-            style={{
-              gridTemplateColumns: gridConfig.unifiedGrid,
-              gap: gridConfig.isMobile ? '8px' : '12px'
-            }}
+            data-phone-count={validPhones.length}
           >
           {/* Dynamic Specifications with Intelligent Highlighting */}
           {filteredSpecs.map((spec) => {
@@ -853,9 +1029,18 @@ const MobilePhoneComparison: React.FC = () => {
                       <div className="msp-spec-content">
                         <span className="msp-spec-text" {...getEditAttributes(phone.specifications?.[spec.key as keyof typeof phone.specifications])}>
                           {(() => {
-                            if (!phone.specifications) return 'N/A';
-                            const specs = getFieldValue(phone.specifications);
-                            return specs && typeof specs === 'object' ? specs[spec.key as keyof typeof specs] || 'N/A' : 'N/A';
+                            if (!phone.specifications) {
+                              return 'N/A';
+                            }
+                            
+                            // Each spec field is individually an editable field object
+                            const specValue = phone.specifications[spec.key as keyof typeof phone.specifications];
+                            if (!specValue) {
+                              return 'N/A';
+                            }
+                            
+                            const finalValue = getFieldValue(specValue);
+                            return typeof finalValue === 'string' ? finalValue : String(finalValue || 'N/A');
                           })()} 
                         </span>
                         {isWinner && (
@@ -937,7 +1122,14 @@ const MobilePhoneComparison: React.FC = () => {
                       <span>{getImageCount(phone)} PHOTOS</span>
                     </div>
                   </div>
-                  <h4 className="msp-media-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h4>
+                  <div className="msp-phone-header">
+                    <h4 className="msp-media-title" {...getEditAttributes(phone.title)}>
+                      {(() => {
+                        const titleValue = getFieldValue(phone.title);
+                        return typeof titleValue === 'string' ? titleValue : String(titleValue || 'Phone');
+                      })()}
+                    </h4>
+                  </div>
                 </div>
               )
             ))}

@@ -8,6 +8,8 @@ import MobilePhoneList from './components/MobilePhoneList';
 import MobilePhoneDetail from './components/MobilePhoneDetail';
 import MobilePhoneComparison from './components/MobilePhoneComparison';
 import VisualBuilderTest from './components/VisualBuilderTest';
+import DebugPhones from './components/DebugPhones';
+import NotFound from './components/NotFound';
 import ErrorBoundary, { LivePreviewErrorBoundary } from './components/shared/ErrorBoundary';
 import { DefaultPersonalizeProvider } from './contexts/PersonalizeContext';
 import { FALLBACK_CONFIG } from './config/fallbacks';
@@ -241,10 +243,38 @@ function App() {
                     </ErrorBoundary>
                   } />
                   
+                  {/* Debug Phones Page */}
+                  <Route path="/debug-phones" element={
+                    <ErrorBoundary>
+                      <DebugPhones />
+                    </ErrorBoundary>
+                  } />
+                  
                   {/* Individual mobile phone detail page using content URL field */}
-                  <Route path="*" element={
+                  <Route path="/mobile/:slug" element={
                     <ErrorBoundary>
                       <MobilePhoneDetail />
+                    </ErrorBoundary>
+                  } />
+                  
+                  {/* Mobile phones detail page (plural form) */}
+                  <Route path="/mobiles/:slug" element={
+                    <ErrorBoundary>
+                      <MobilePhoneDetail />
+                    </ErrorBoundary>
+                  } />
+                  
+                  {/* Legacy mobile phone route */}
+                  <Route path="/mobile-phone" element={
+                    <ErrorBoundary>
+                      <MobilePhoneDetail />
+                    </ErrorBoundary>
+                  } />
+                  
+                  {/* 404 Not Found - Must be last route */}
+                  <Route path="*" element={
+                    <ErrorBoundary>
+                      <NotFound />
                     </ErrorBoundary>
                   } />
                   </Routes>

@@ -258,15 +258,29 @@
 }
 
 
-.buy-links {
+/* Buy Links Section - Improved Alignment */
+.buy-links-section {
+  padding: 3rem 0;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.buy-links-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
   text-align: center;
 }
 
 .buy-links-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.875rem;
+  font-weight: 800;
   color: #1a202c;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .buy-buttons {
@@ -274,6 +288,7 @@
   gap: 1.5rem;
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: 2rem;
 }
 
 .buy-button {

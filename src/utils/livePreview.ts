@@ -202,6 +202,12 @@ export const initializeLivePreview = async (): Promise<void> => {
 
     // Initialize Live Preview Utils
     ContentstackLivePreview.init(config);
+    
+    // Expose SDK to window object for debugging and testing
+    if (typeof window !== 'undefined') {
+      (window as any).ContentstackLivePreview = ContentstackLivePreview;
+      (window as any).Contentstack = Contentstack;
+    }
 
     console.log('✅ Live Preview initialized successfully');
   } catch (error) {
@@ -215,7 +221,7 @@ export const initializeLivePreview = async (): Promise<void> => {
 export const onEntryChange = ContentstackLivePreview.onEntryChange;
 export const onLiveEdit = ContentstackLivePreview.onLiveEdit;
 
-// Enhanced edit attributes helper with debugging
+// Enhanced edit attributes helper with debugging and DOM prop filtering
 export const getEditAttributes = (field: any) => {
   if (!isPreviewMode()) {
     return {};
@@ -223,18 +229,39 @@ export const getEditAttributes = (field: any) => {
   
   const editAttrs = field?.$ || {};
   
-  // Debug logging for edit attributes
-  if (field && typeof field === 'object') {
-    console.log('🔍 getEditAttributes debug:', {
-      hasField: !!field,
-      hasEditProperty: !!field.$,
-      editAttributes: editAttrs,
-      fieldType: typeof field,
-      fieldKeys: Object.keys(field || {})
-    });
+  // Filter out invalid DOM properties - only keep valid HTML attributes
+  const validDOMProps: Record<string, any> = {};
+  
+  // Valid HTML/React attributes that can be spread onto DOM elements
+  const validPropNames = [
+    'data-cslp',
+    'data-testid', 
+    'className',
+    'style',
+    'id',
+    'role',
+    'aria-label',
+    'aria-labelledby',
+    'aria-describedby',
+    'title'
+  ];
+  
+  // Only include properties that are valid DOM attributes
+  Object.keys(editAttrs).forEach(key => {
+    if (validPropNames.includes(key) || key.startsWith('data-') || key.startsWith('aria-')) {
+      validDOMProps[key] = editAttrs[key];
+    }
+  });
+  
+  // Debug logging for edit attributes (development only)
+  if (process.env.NODE_ENV === 'development' && field && typeof field === 'object') {
+    const filteredKeys = Object.keys(editAttrs).filter(key => !Object.keys(validDOMProps).includes(key));
+    if (filteredKeys.length > 0) {
+      console.log('🔍 getEditAttributes filtered out invalid DOM props:', filteredKeys);
+    }
   }
   
-  return editAttrs;
+  return validDOMProps;
 };
 
 // Export VB_EmptyBlockParentClass for multiple field containers

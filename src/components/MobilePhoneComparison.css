@@ -103,10 +103,9 @@
   box-sizing: border-box;
 }
 
-/* Product Cards - Unified Grid System */
+/* Product Cards - Dynamic Grid System */
 .msp-product-cards {
   display: grid;
-  grid-template-columns: 120px repeat(4, minmax(0, 1fr));
   gap: 8px;
   width: 100%;
   margin: 0 0 20px 0;
@@ -116,7 +115,49 @@
   min-height: 420px;
   /* Prevent viewport issues */
   box-sizing: border-box;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* Enhanced scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f0f0f0;
+}
+
+/* Dynamic grid columns based on number of phones */
+.msp-product-cards[data-phone-count="1"] {
+  grid-template-columns: 120px minmax(280px, 1fr);
+}
+
+.msp-product-cards[data-phone-count="2"] {
+  grid-template-columns: 120px repeat(2, minmax(250px, 1fr));
+}
+
+.msp-product-cards[data-phone-count="3"] {
+  grid-template-columns: 120px repeat(3, minmax(220px, 1fr));
+  min-width: 800px; /* Ensure horizontal scroll on smaller screens */
+}
+
+.msp-product-cards[data-phone-count="4"] {
+  grid-template-columns: 120px repeat(4, minmax(200px, 1fr));
+  min-width: 920px; /* Ensure horizontal scroll on smaller screens */
+}
+
+/* Fallback for no data attribute */
+.msp-product-cards:not([data-phone-count]) {
+  grid-template-columns: 120px repeat(auto-fit, minmax(200px, 1fr));
+  min-width: max-content;
+}
+
+/* Mobile grid adjustments for add phone button */
+@media (max-width: 768px) {
+  .msp-product-cards[data-phone-count="1"] {
+    grid-template-columns: 100px minmax(200px, 1fr);
+  }
+  
+  .msp-product-cards[data-phone-count="2"] {
+    grid-template-columns: 100px repeat(2, minmax(180px, 1fr));
+  }
 }
 
 .msp-product-card {
@@ -146,13 +187,31 @@
   border-color: #2563eb;
 }
 
+/* Add Phone Container - Compact wrapper that doesn't inherit product card height */
+.msp-add-phone-container {
+  /* Compact container - no min-height constraint */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  /* Align with top of other cards */
+  align-self: start;
+  margin-top: 20px;
+  /* Grid positioning */
+  scroll-snap-align: start;
+}
+
 .msp-add-phone-card {
   background: #f8f9fa;
   border: 2px dashed #cbd5e0;
   border-radius: 8px;
-  padding: 16px;
-  /* Match product card height exactly */
-  min-height: 400px;
+  padding: 12px;
+  /* Compact height - much smaller than product cards */
+  min-height: 120px;
+  max-height: 140px;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -160,9 +219,14 @@
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
-  scroll-snap-align: start;
-  /* Use grid sizing instead of fixed width */
+  /* Use full width of container */
   width: 100%;
+  /* Ensure visibility and interaction */
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .msp-spec-label-column {
@@ -201,6 +265,28 @@
   }
 }
 
+@media (max-width: 768px) {
+  .msp-add-phone-container {
+    margin-top: 15px;
+  }
+  
+  .msp-add-phone-card {
+    min-height: 100px;
+    max-height: 120px;
+    padding: 10px;
+  }
+  
+  .msp-add-icon {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 8px;
+  }
+  
+  .msp-add-text {
+    font-size: 11px;
+  }
+}
+
 @media (max-width: 480px) {
   .msp-spec-label-header {
     font-size: 11px;
@@ -211,11 +297,195 @@
     min-height: 360px;
     padding: 8px;
   }
+  
+  .msp-add-phone-container {
+    margin-top: 12px;
+  }
+  
+  .msp-add-phone-card {
+    min-height: 80px;
+    max-height: 100px;
+    padding: 8px;
+  }
+  
+  .msp-add-icon {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 4px;
+  }
+  
+  .msp-add-text {
+    font-size: 10px;
+  }
 }
 
 .msp-add-phone-card:hover {
   border-color: #2563eb;
   background: #f7faff;
+}
+
+/* Add phone button content */
+.msp-add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #e5e7eb;
+  border-radius: 50%;
+  margin-bottom: 8px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.msp-add-phone-card:hover .msp-add-icon {
+  background: #2563eb;
+  color: white;
+}
+
+.msp-add-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.msp-add-phone-card:hover .msp-add-text {
+  color: #2563eb;
+}
+
+/* Floating Add Phone Button */
+.msp-floating-add-phone {
+  position: fixed;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 1000;
+  white-space: nowrap;
+}
+
+.msp-floating-add-phone:hover {
+  background: #1d4ed8;
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 6px 25px rgba(37, 99, 235, 0.4);
+}
+
+.msp-floating-add-phone:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.msp-floating-add-text {
+  display: inline;
+}
+
+/* Responsive floating button */
+@media (max-width: 768px) {
+  .msp-floating-add-phone {
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+  
+  .msp-floating-add-text {
+    display: none; /* Hide text on mobile, show only icon */
+  }
+}
+
+@media (max-width: 480px) {
+  .msp-floating-add-phone {
+    right: 15px;
+    padding: 12px;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    justify-content: center;
+  }
+}
+
+.msp-phone-header {
+  /* Wrapper for phone title elements - maintains existing layout */
+  display: contents;
+}
+
+/* Error handling styles */
+.msp-error {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.msp-error h2 {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.msp-error-help {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.msp-error-help ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.msp-error-help li {
+  font-family: 'Courier New', monospace;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  margin: 0.25rem 0;
+}
+
+.msp-error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.msp-error-button {
+  padding: 0.75rem 1.5rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.msp-error-button:hover {
+  background: #1d4ed8;
+}
+
+.msp-error-button-secondary {
+  background: #6b7280;
+}
+
+.msp-error-button-secondary:hover {
+  background: #4b5563;
 }
 
 .msp-add-icon {
@@ -434,6 +704,27 @@
   justify-content: space-between;
 }
 
+/* Clickable card styling */
+.msp-clickable-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.msp-clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.msp-clickable-card:focus {
+  box-shadow: 0 0 0 2px #007bff;
+  transform: translateY(-1px);
+}
+
+.msp-clickable-card:active {
+  transform: translateY(0);
+}
+
 .msp-store {
   display: flex;
   align-items: center;
@@ -588,7 +879,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Unified Comparison Container - Critical Fix for Mobile Alignment */
+/* Unified Comparison Container - Enhanced for Multiple Phones */
 .msp-unified-comparison-container {
   width: 100%;
   overflow-x: auto;
@@ -600,11 +891,23 @@
   /* Remove any default margins/padding */
   margin: 0;
   padding: 0;
-  /* Ensure minimum width to prevent compression */
-  min-width: max-content;
   /* Enhanced mobile scrollbars */
   scrollbar-width: thin;
   scrollbar-color: #ccc #f0f0f0;
+}
+
+/* Force scrollability for 3+ phones on smaller screens */
+@media (max-width: 1200px) {
+  .msp-unified-comparison-container:has([data-phone-count="3"]),
+  .msp-unified-comparison-container:has([data-phone-count="4"]) {
+    overflow-x: scroll;
+  }
+}
+
+@media (max-width: 900px) {
+  .msp-unified-comparison-container:has([data-phone-count="2"]) {
+    overflow-x: scroll;
+  }
 }
 
 /* Webkit scrollbar styling for unified container */
@@ -682,6 +985,62 @@
   /* Better scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: #ccc #f0f0f0;
+}
+
+/* Dynamic grid columns for specifications table */
+.msp-comparison-grid[data-phone-count="1"] {
+  grid-template-columns: 200px minmax(280px, 1fr);
+}
+
+.msp-comparison-grid[data-phone-count="2"] {
+  grid-template-columns: 200px repeat(2, minmax(250px, 1fr));
+  min-width: 700px;
+}
+
+.msp-comparison-grid[data-phone-count="3"] {
+  grid-template-columns: 200px repeat(3, minmax(220px, 1fr));
+  min-width: 860px; /* Force horizontal scroll on smaller screens */
+}
+
+.msp-comparison-grid[data-phone-count="4"] {
+  grid-template-columns: 200px repeat(4, minmax(200px, 1fr));
+  min-width: 1000px; /* Force horizontal scroll on smaller screens */
+}
+
+/* Fallback for specifications grid */
+.msp-comparison-grid:not([data-phone-count]) {
+  grid-template-columns: 200px repeat(auto-fit, minmax(200px, 1fr));
+  min-width: max-content;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+  .msp-comparison-grid[data-phone-count="3"] {
+    grid-template-columns: 180px repeat(3, minmax(200px, 1fr));
+    min-width: 780px;
+  }
+  
+  .msp-comparison-grid[data-phone-count="4"] {
+    grid-template-columns: 180px repeat(4, minmax(180px, 1fr));
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 900px) {
+  .msp-comparison-grid[data-phone-count="2"] {
+    grid-template-columns: 160px repeat(2, minmax(220px, 1fr));
+    min-width: 600px;
+  }
+  
+  .msp-comparison-grid[data-phone-count="3"] {
+    grid-template-columns: 160px repeat(3, minmax(180px, 1fr));
+    min-width: 700px;
+  }
+  
+  .msp-comparison-grid[data-phone-count="4"] {
+    grid-template-columns: 160px repeat(4, minmax(160px, 1fr));
+    min-width: 800px;
+  }
 }
 
 /* Webkit scrollbar styling */
@@ -1305,11 +1664,17 @@
     overflow: visible;
   }
   
-  .msp-product-card,
-  .msp-add-phone-card {
+  .msp-product-card {
     padding: 12px;
     /* Increased height for better mobile experience */
     min-height: 400px;
+  }
+  
+  /* Add phone card should remain compact even on mobile */
+  .msp-add-phone-card {
+    padding: 8px;
+    min-height: 80px;
+    max-height: 100px;
   }
   
   .msp-sticky-headers {

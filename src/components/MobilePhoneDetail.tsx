@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobilePhone } from '../types/MobilePhone';
 import { generateComparisonUrl } from '../utils/urlUtils';
 import { Helmet } from 'react-helmet-async';
 import { onEntryChange, onLiveEdit, VB_EmptyBlockParentClass, getEditAttributes } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import contentstackService from '../services/contentstackService';
+import NotFound from './NotFound';
 import './MobilePhoneDetail.css';
 
 const MobilePhoneDetail: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
   const [mobilePhone, setMobilePhone] = useState<MobilePhone | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState<boolean>(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [relatedPhones, setRelatedPhones] = useState<MobilePhone[]>([]);
 
@@ -26,18 +30,49 @@ const MobilePhoneDetail: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      setNotFound(false);
       
       let phone: MobilePhone;
       
       if (isRootPath && defaultUid) {
         // Use default UID for home page
         phone = await contentstackService.getMobilePhoneByUID(defaultUid);
+      } else if (slug) {
+        // For /mobile/:slug or /mobiles/:slug routes
+        // First try to find by URL field in CMS (e.g., /mobiles/samsung-galaxy-s24-ultra)
+        try {
+          phone = await contentstackService.getMobilePhoneByURL(currentPath);
+          console.log(`📱 Found phone by URL: ${currentPath}`);
+        } catch (urlError) {
+          // If URL lookup fails, try as direct UID
+          if (slug.startsWith('blt') && slug.length === 19) {
+            try {
+              phone = await contentstackService.getMobilePhoneByUID(slug);
+              console.log(`📱 Found phone by UID: ${slug}`);
+            } catch (uidError) {
+              console.warn(`Phone not found by URL or UID: ${currentPath}`, uidError);
+              setNotFound(true);
+              return;
+            }
+          } else {
+            console.warn(`Phone not found by URL: ${currentPath}`, urlError);
+            setNotFound(true);
+            return;
+          }
+        }
       } else {
         // Try URL-based fetch first
         try {
           phone = await contentstackService.getMobilePhoneByURL(currentPath);
         } catch (urlError) {
-          // Fallback to default UID if URL fetch fails
+          // For specific routes like /mobile/something or /mobiles/something, don't fallback - show 404
+          if (currentPath.startsWith('/mobile/') || currentPath.startsWith('/mobiles/')) {
+            console.warn(`Phone not found by URL: ${currentPath}`, urlError);
+            setNotFound(true);
+            return;
+          }
+          
+          // Fallback to default UID for other routes
           if (defaultUid) {
             phone = await contentstackService.getMobilePhoneByUID(defaultUid);
           } else {
@@ -89,6 +124,10 @@ const MobilePhoneDetail: React.FC = () => {
     );
   }
 
+  if (notFound) {
+    return <NotFound />;
+  }
+
   if (error) {
     return (
       <div className="error-container">
@@ -129,9 +168,9 @@ const MobilePhoneDetail: React.FC = () => {
     <div className="mobile-phone-detail">
       {/* SEO Meta Tags */}
       <Helmet>
-        {mobilePhone.seo?.meta_title && <title>{mobilePhone.seo.meta_title}</title>}
-        {mobilePhone.seo?.meta_description && <meta name="description" content={mobilePhone.seo.meta_description} />}
-        {mobilePhone.seo?.keywords && <meta name="keywords" content={mobilePhone.seo.keywords} />}
+        {mobilePhone.seo?.meta_title && <title>{getFieldValue(mobilePhone.seo.meta_title)}</title>}
+        {mobilePhone.seo?.meta_description && <meta name="description" content={getFieldValue(mobilePhone.seo.meta_description)} />}
+        {mobilePhone.seo?.keywords && <meta name="keywords" content={getFieldValue(mobilePhone.seo.keywords)} />}
         {mobilePhone.seo && !mobilePhone.seo.enable_search_indexing && <meta name="robots" content="noindex, nofollow" />}
         
         <meta property="og:image" content={optimizedImageUrl} />
@@ -147,21 +186,21 @@ const MobilePhoneDetail: React.FC = () => {
             <div className="hero-text">
               {mobilePhone.tags && Array.isArray(mobilePhone.tags) && (
                 <div className="tags-container">
-                  {mobilePhone.tags.map((tag: string, index: number) => (
-                    <span key={index} className="tag">
-                      {tag}
+                  {mobilePhone.tags.map((tag: any, index: number) => (
+                    <span key={index} className="tag" {...getEditAttributes(tag)}>
+                      {getFieldValue(tag)}
                     </span>
                   ))}
                 </div>
               )}
               
               <h1 className="hero-title" {...getEditAttributes(mobilePhone.title)}>
-                {typeof mobilePhone.title === 'string' ? mobilePhone.title : mobilePhone.title}
+                {getFieldValue(mobilePhone.title)}
               </h1>
               
               {mobilePhone.description && (
                 <p className="hero-description" {...getEditAttributes(mobilePhone.description)}>
-                  {typeof mobilePhone.description === 'string' ? mobilePhone.description : mobilePhone.description}
+                  {getFieldValue(mobilePhone.description)}
                 </p>
               )}
             </div>
@@ -172,8 +211,9 @@ const MobilePhoneDetail: React.FC = () => {
                   {currentImage?.url && (
                     <img
                       src={optimizedImageUrl}
-                      alt={typeof mobilePhone.title === 'string' ? mobilePhone.title : 'Mobile phone'}
+                      alt={getFieldValue(mobilePhone.title) || 'Mobile phone'}
                       className="phone-image"
+                      {...getEditAttributes(selectedImageIndex === 0 ? mobilePhone.lead_image : mobilePhone.images?.[selectedImageIndex - 1])}
                     />
                   )}
                 </div>
@@ -192,7 +232,7 @@ const MobilePhoneDetail: React.FC = () => {
                             format: 'webp',
                             quality: 80
                           })}
-                          alt={image.title || `${mobilePhone.title} view ${index + 1}`}
+                          alt={image.title || `${getFieldValue(mobilePhone.title)} view ${index + 1}`}
                         />
                       </button>
                     ))}
@@ -217,8 +257,8 @@ const MobilePhoneDetail: React.FC = () => {
                   key={variant._metadata?.uid || index}
                   className="variant-card"
                 >
-                  <div className="variant-name" {...getEditAttributes(variant.variant_name)}>{variant.variant_name}</div>
-                  <div className="variant-price" {...getEditAttributes(variant.price)}>₹{variant.price?.toLocaleString('en-IN')}</div>
+                  <div className="variant-name" {...getEditAttributes(variant.variant_name)}>{getFieldValue(variant.variant_name)}</div>
+                  <div className="variant-price" {...getEditAttributes(variant.price)}>₹{getFieldValue(variant.price)?.toLocaleString('en-IN')}</div>
                 </div>
               ))}
             </div>
@@ -240,7 +280,7 @@ const MobilePhoneDetail: React.FC = () => {
                   className="buy-button amazon"
                 >
                   <span className="buy-icon">🛒</span>
-                  Buy on {mobilePhone.amazon_link.title}
+                  Buy on <span {...getEditAttributes(mobilePhone.amazon_link.title)}>{getFieldValue(mobilePhone.amazon_link.title)}</span>
                 </a>
               )}
               {mobilePhone.flipkart_link && (
@@ -251,7 +291,7 @@ const MobilePhoneDetail: React.FC = () => {
                   className="buy-button flipkart"
                 >
                   <span className="buy-icon">🛍️</span>
-                  Buy on {mobilePhone.flipkart_link.title}
+                  Buy on <span {...getEditAttributes(mobilePhone.flipkart_link.title)}>{getFieldValue(mobilePhone.flipkart_link.title)}</span>
                 </a>
               )}
             </div>
@@ -271,7 +311,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📱</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Display Resolution</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.display_resolution)}>{mobilePhone.specifications.display_resolution}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.display_resolution)}>{getFieldValue(mobilePhone.specifications.display_resolution)}</p>
                 </div>
               </div>
             )}
@@ -281,7 +321,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📏</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Screen-to-Body Ratio</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.screen_to_body_ratio)}>{mobilePhone.specifications.screen_to_body_ratio}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.screen_to_body_ratio)}>{getFieldValue(mobilePhone.specifications.screen_to_body_ratio)}</p>
                 </div>
               </div>
             )}
@@ -291,7 +331,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🧠</div>
                 <div className="spec-content">
                   <h3 className="spec-label">RAM</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.ram)}>{mobilePhone.specifications.ram}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.ram)}>{getFieldValue(mobilePhone.specifications.ram)}</p>
                 </div>
               </div>
             )}
@@ -301,7 +341,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">💾</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Storage</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.storage)}>{mobilePhone.specifications.storage}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.storage)}>{getFieldValue(mobilePhone.specifications.storage)}</p>
                 </div>
               </div>
             )}
@@ -311,7 +351,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🔧</div>
                 <div className="spec-content">
                   <h3 className="spec-label">CPU</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.cpu)}>{mobilePhone.specifications.cpu}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.cpu)}>{getFieldValue(mobilePhone.specifications.cpu)}</p>
                 </div>
               </div>
             )}
@@ -321,7 +361,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🤳</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Front Camera</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.front_camera)}>{mobilePhone.specifications.front_camera}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.front_camera)}>{getFieldValue(mobilePhone.specifications.front_camera)}</p>
                 </div>
               </div>
             )}
@@ -331,7 +371,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">📷</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Rear Camera</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.rear_camera)}>{mobilePhone.specifications.rear_camera}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.rear_camera)}>{getFieldValue(mobilePhone.specifications.rear_camera)}</p>
                 </div>
               </div>
             )}
@@ -341,7 +381,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">⚖️</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Weight</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.weight)}>{mobilePhone.specifications.weight}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.weight)}>{getFieldValue(mobilePhone.specifications.weight)}</p>
                 </div>
               </div>
             )}
@@ -351,7 +391,7 @@ const MobilePhoneDetail: React.FC = () => {
                 <div className="spec-icon">🔋</div>
                 <div className="spec-content">
                   <h3 className="spec-label">Battery</h3>
-                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.battery)}>{mobilePhone.specifications.battery}</p>
+                  <p className="spec-value" {...getEditAttributes(mobilePhone.specifications.battery)}>{getFieldValue(mobilePhone.specifications.battery)}</p>
                 </div>
               </div>
             )}
@@ -375,22 +415,23 @@ const MobilePhoneDetail: React.FC = () => {
                         format: 'webp',
                         quality: 85
                       })}
-                      alt={typeof relatedPhone.title === 'string' ? relatedPhone.title : 'Related phone'}
+                      alt={getFieldValue(relatedPhone.title) || 'Related phone'}
                       className="related-image"
+                      {...getEditAttributes(relatedPhone.lead_image)}
                     />
                   </div>
                   <div className="related-phone-content">
                     <h3 className="related-phone-title" {...getEditAttributes(relatedPhone.title)}>
-                      {typeof relatedPhone.title === 'string' ? relatedPhone.title : relatedPhone.title}
+                      {getFieldValue(relatedPhone.title)}
                     </h3>
                     {relatedPhone.variants && Array.isArray(relatedPhone.variants) && relatedPhone.variants.length > 0 && (
-                      <p className="related-phone-price">
-                        From ₹{relatedPhone.variants[0].price?.toLocaleString('en-IN')}
+                      <p className="related-phone-price" {...getEditAttributes(relatedPhone.variants[0].price)}>
+                        From ₹{getFieldValue(relatedPhone.variants[0].price)?.toLocaleString('en-IN')}
                       </p>
                     )}
                     <div className="related-phone-actions">
                       <a 
-                        href={relatedPhone.url}
+                        href={getFieldValue(relatedPhone.url)}
                         className="view-details-btn"
                       >
                         View Details

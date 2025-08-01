@@ -1,6 +1,7 @@
 // MINIMAL Visual Builder Test Component
 import React, { useState, useEffect } from 'react';
 import { initializeLivePreview, onEntryChange, onLiveEdit, getEditAttributes, isPreviewMode } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import contentstackService from '../services/contentstackService';
 import { MobilePhone } from '../types/MobilePhone';
 import { FALLBACK_CONFIG } from '../config/fallbacks';
@@ -94,7 +95,7 @@ const VisualBuilderTest: React.FC = () => {
           TITLE (should be editable in VB)
         </div>
         <h1 {...getEditAttributes(phone.title)} style={{ color: '#333', marginBottom: '10px' }}>
-          {phone.title}
+          {getFieldValue(phone.title)}
         </h1>
       </div>
 
@@ -103,7 +104,7 @@ const VisualBuilderTest: React.FC = () => {
           DESCRIPTION (should be editable in VB)
         </div>
         <p {...getEditAttributes(phone.description)} style={{ color: '#666', marginBottom: '0' }}>
-          {phone.description}
+          {getFieldValue(phone.description)}
         </p>
       </div>
 
@@ -116,7 +117,7 @@ const VisualBuilderTest: React.FC = () => {
           <img 
             {...getEditAttributes(phone.lead_image)}
             src={phone.lead_image.url} 
-            alt={phone.title}
+            alt={getFieldValue(phone.title)}
             style={{ maxWidth: '300px', height: 'auto', display: 'block' }}
           />
         </div>
@@ -134,7 +135,7 @@ const VisualBuilderTest: React.FC = () => {
               <li style={{ marginBottom: '8px' }}>
                 <strong>CPU:</strong> 
                 <span {...getEditAttributes(phone.specifications.cpu)} style={{ background: '#f8f9fa', padding: '2px 4px', marginLeft: '5px' }}>
-                  {phone.specifications.cpu}
+                  {getFieldValue(phone.specifications.cpu)}
                 </span>
               </li>
             )}
@@ -142,7 +143,7 @@ const VisualBuilderTest: React.FC = () => {
               <li style={{ marginBottom: '8px' }}>
                 <strong>RAM:</strong> 
                 <span {...getEditAttributes(phone.specifications.ram)} style={{ background: '#f8f9fa', padding: '2px 4px', marginLeft: '5px' }}>
-                  {phone.specifications.ram}
+                  {getFieldValue(phone.specifications.ram)}
                 </span>
               </li>
             )}
