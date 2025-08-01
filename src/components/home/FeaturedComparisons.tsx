@@ -73,68 +73,84 @@ const FeaturedComparisons: React.FC<FeaturedComparisonsProps> = React.memo(({ co
         </div>
 
         <div className={`featured-comparisons__grid ${comparisons.length ? '' : VB_EmptyBlockParentClass}`}>
-          {comparisons.map((comparison, index) => (
-            <Card 
-              key={index}
-              className="featured-comparisons__card"
-              variant="elevated"
-              hover
-              onClick={() => handleComparisonClick(comparison.url)}
-            >
-              <div className="featured-comparisons__card-header">
-                <Badge 
-                  variant={comparison.popularity === 'trending' ? 'success' : 'primary'}
-                  size="sm"
-                >
-                  {badgeTextMap[comparison.popularity as keyof typeof badgeTextMap] || badgeTextMap.popular}
-                </Badge>
-                <Badge variant="default" size="sm">
-                  {comparison.category}
-                </Badge>
-              </div>
+          {comparisons.map((comparison, index) => {
+            // Map back to original CMS field names for proper edit attributes
+            const comparisonTitle = index === 0 ? content.comparison_1_title :
+                                   index === 1 ? content.comparison_2_title :
+                                   content.comparison_3_title;
+            const comparisonDescription = index === 0 ? content.comparison_1_description :
+                                         index === 1 ? content.comparison_2_description :
+                                         content.comparison_3_description;
+            const comparisonPhone1 = index === 0 ? content.comparison_1_phone_1 :
+                                    index === 1 ? content.comparison_2_phone_1 :
+                                    content.comparison_3_phone_1;
+            const comparisonPhone2 = index === 0 ? content.comparison_1_phone_2 :
+                                    index === 1 ? content.comparison_2_phone_2 :
+                                    content.comparison_3_phone_2;
+            
+            return (
+              <Card 
+                key={index}
+                className="featured-comparisons__card"
+                variant="elevated"
+                hover
+                onClick={() => handleComparisonClick(getFieldValue(comparison.url))}
+              >
+                <div className="featured-comparisons__card-header">
+                  <Badge 
+                    variant={comparison.popularity === 'trending' ? 'success' : 'primary'}
+                    size="sm"
+                  >
+                    {badgeTextMap[comparison.popularity as keyof typeof badgeTextMap] || badgeTextMap.popular}
+                  </Badge>
+                  <Badge variant="default" size="sm">
+                    {comparison.category}
+                  </Badge>
+                </div>
 
-              <div className="featured-comparisons__phones">
-                <div className="featured-comparisons__phone">
-                  <div className="featured-comparisons__phone-placeholder">
-                    {uiConstants.phonePlaceholder}
+                <div className="featured-comparisons__phones">
+                  <div className="featured-comparisons__phone">
+                    <div className="featured-comparisons__phone-placeholder">
+                      {uiConstants.phonePlaceholder}
+                    </div>
+                    <span className="featured-comparisons__phone-name" {...getEditAttributes(comparisonPhone1)}>
+                      {getFieldValue(comparisonPhone1)}
+                    </span>
                   </div>
-                  <span className="featured-comparisons__phone-name">
-                    {comparison.phone_1_name}
-                  </span>
-                </div>
-                
-                <div className="featured-comparisons__vs" {...getEditAttributes(content.comparison_vs_text)}>
-                  {uiConstants.vsText}
-                </div>
-                
-                <div className="featured-comparisons__phone">
-                  <div className="featured-comparisons__phone-placeholder">
-                    {uiConstants.phonePlaceholder}
+                  
+                  <div className="featured-comparisons__vs" {...getEditAttributes(content.comparison_vs_text)}>
+                    {uiConstants.vsText}
                   </div>
-                  <span className="featured-comparisons__phone-name">
-                    {comparison.phone_2_name}
-                  </span>
+                  
+                  <div className="featured-comparisons__phone">
+                    <div className="featured-comparisons__phone-placeholder">
+                      {uiConstants.phonePlaceholder}
+                    </div>
+                    <span className="featured-comparisons__phone-name" {...getEditAttributes(comparisonPhone2)}>
+                      {getFieldValue(comparisonPhone2)}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="featured-comparisons__content">
-                <h3 className="featured-comparisons__card-title">
-                  {comparison.title}
-                </h3>
-                <p className="featured-comparisons__card-description">
-                  {comparison.description}
-                </p>
-              </div>
+                <div className="featured-comparisons__content">
+                  <h3 className="featured-comparisons__card-title" {...getEditAttributes(comparisonTitle)}>
+                    {getFieldValue(comparisonTitle)}
+                  </h3>
+                  <p className="featured-comparisons__card-description" {...getEditAttributes(comparisonDescription)}>
+                    {getFieldValue(comparisonDescription)}
+                  </p>
+                </div>
 
-              <div className="featured-comparisons__action">
-                <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
-                  <span {...getEditAttributes(content.comparison_card_button_text)}>
-                    {uiConstants.cardButtonText}
-                  </span>
-                </Button>
-              </div>
-            </Card>
-          ))}
+                <div className="featured-comparisons__action">
+                  <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+                    <span {...getEditAttributes(content.comparison_card_button_text)}>
+                      {uiConstants.cardButtonText}
+                    </span>
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </section>

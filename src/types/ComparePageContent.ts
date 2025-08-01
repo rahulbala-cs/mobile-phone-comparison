@@ -1,4 +1,5 @@
 // TypeScript interfaces for Compare Page content from Contentstack CMS
+import { getFieldValue } from './EditableTags';
 
 export interface ComparePageContent {
   title: string;
@@ -117,29 +118,31 @@ export const getBadgeDisplay = (badge: PopularityBadge): string => {
 // Transform categories for component consumption
 export const transformCategories = (categories: ComparisonCategory[]) => {
   return categories.map(category => ({
-    id: category.category_id,
-    title: category.category_details.category_title,
-    description: category.category_details.description,
-    icon: category.category_details.icon_config.icon_name,
-    available: category.availability.is_available,
-    count: category.availability.count_label,
-    color: category.category_details.icon_config.icon_color,
-    route: category.availability.route_path,
-    buttonText: category.availability.is_available 
-      ? category.cta_config.available_button_text 
-      : category.cta_config.unavailable_button_text
+    id: getFieldValue(category.category_id),
+    title: category.category_details.category_title, // Keep as editable field for Visual Builder
+    description: category.category_details.description, // Keep as editable field for Visual Builder
+    icon: getFieldValue(category.category_details.icon_config.icon_name),
+    available: getFieldValue(category.availability.is_available),
+    count: getFieldValue(category.availability.count_label),
+    color: getFieldValue(category.category_details.icon_config.icon_color),
+    route: getFieldValue(category.availability.route_path),
+    buttonText: getFieldValue(category.availability.is_available) 
+      ? getFieldValue(category.cta_config.available_button_text)
+      : getFieldValue(category.cta_config.unavailable_button_text)
   }));
 };
 
 // Transform featured comparisons for component consumption
 export const transformFeaturedComparisons = (comparisons: FeaturedComparison[]) => {
   return comparisons
-    .sort((a, b) => (a.display_priority || 999) - (b.display_priority || 999))
+    .sort((a, b) => (getFieldValue(a.display_priority) || 999) - (getFieldValue(b.display_priority) || 999))
     .map(comparison => ({
-      title: comparison.comparison_details.comparison_title,
-      category: comparison.comparison_details.category_label,
-      popularity: comparison.popularity_badge.badge_type,
-      route: comparison.comparison_details.route_path,
+      title: comparison.comparison_details.comparison_title, // Keep as editable field for Visual Builder
+      categoryLabel: comparison.comparison_details.category_label, // Keep as editable field for Visual Builder
+      category: getFieldValue(comparison.comparison_details.category_label),
+      popularityBadge: comparison.popularity_badge.badge_type, // Keep as editable field for Visual Builder
+      popularity: getFieldValue(comparison.popularity_badge.badge_type),
+      route: getFieldValue(comparison.comparison_details.route_path),
       badgeText: getBadgeDisplay(comparison.popularity_badge)
     }));
 };

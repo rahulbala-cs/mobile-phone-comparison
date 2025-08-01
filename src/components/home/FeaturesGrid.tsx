@@ -41,6 +41,21 @@ const FeaturesGrid: React.FC<FeaturesGridProps> = ({ content, features }) => {
         <div className={`features__grid ${features.length ? '' : VB_EmptyBlockParentClass}`}>
           {features.map((feature, index) => {
             const Icon = iconMap[feature.icon_name] || Smartphone; // Default to Smartphone icon if not found
+            
+            // Map back to original CMS field names for proper edit attributes
+            const featureTitle = index === 0 ? content.feature_1_title :
+                                index === 1 ? content.feature_2_title :
+                                index === 2 ? content.feature_3_title :
+                                index === 3 ? content.feature_4_title :
+                                index === 4 ? content.feature_5_title :
+                                content.feature_6_title;
+            const featureDescription = index === 0 ? content.feature_1_description :
+                                      index === 1 ? content.feature_2_description :
+                                      index === 2 ? content.feature_3_description :
+                                      index === 3 ? content.feature_4_description :
+                                      index === 4 ? content.feature_5_description :
+                                      content.feature_6_description;
+            
             return (
               <Card 
                 key={index} 
@@ -54,8 +69,8 @@ const FeaturesGrid: React.FC<FeaturesGridProps> = ({ content, features }) => {
                 >
                   <Icon size={24} />
                 </div>
-                <h3 className="features__card-title">{feature.title}</h3>
-                <p className="features__card-description">{feature.description}</p>
+                <h3 className="features__card-title" {...getEditAttributes(featureTitle)}>{getFieldValue(featureTitle)}</h3>
+                <p className="features__card-description" {...getEditAttributes(featureDescription)}>{getFieldValue(featureDescription)}</p>
               </Card>
             );
           })}

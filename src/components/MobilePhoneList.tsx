@@ -4,6 +4,7 @@ import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { generateComparisonUrl } from '../utils/urlUtils';
 import { onEntryChange, onLiveEdit, getEditAttributes } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import { usePersonalize, usePageView, usePhoneTracking, useSearchTracking, useUserAttributes } from '../hooks/usePersonalize';
 import './MobilePhoneList.css';
 
@@ -146,7 +147,7 @@ const MobilePhoneList: React.FC = () => {
 
   const handleCompare = () => {
     if (selectedPhones.length >= 2) {
-      const comparisonUrl = generateComparisonUrl(...selectedPhones.map(p => p.title));
+      const comparisonUrl = generateComparisonUrl(...selectedPhones.map(p => getFieldValue(p.title)));
       navigate(comparisonUrl);
     }
   };
@@ -228,7 +229,7 @@ const MobilePhoneList: React.FC = () => {
               <div className="selected-phones-list">
                 {selectedPhones.map((phone) => (
                   <div key={phone.uid} className="selected-phone-item">
-                    <span>{phone.title}</span>
+                    <span {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</span>
                     <button 
                       className="remove-btn"
                       onClick={() => handlePhoneSelect(phone)}
@@ -265,7 +266,7 @@ const MobilePhoneList: React.FC = () => {
             return (
               <div key={phone.uid} className="phone-card-wrapper">
                 <Link 
-                  to={phone.url}
+                  to={getFieldValue(phone.url)}
                   className="phone-card-link"
                 >
                   <div className={`phone-card ${isSelected ? 'selected' : ''}`}>
@@ -276,25 +277,26 @@ const MobilePhoneList: React.FC = () => {
                           format: 'webp',
                           quality: 85
                         })}
-                        alt={phone.lead_image.title || phone.title}
+                        alt={phone.lead_image.title || getFieldValue(phone.title)}
                         className="phone-card-image"
+                        {...getEditAttributes(phone.lead_image)}
                       />
                     </div>
                     
                     <div className="phone-card-content">
                       {phone.tags && (phone.tags as any[])?.length > 0 && (
                         <div className="phone-brand">
-                          {(phone.tags as any[])[0]}
+                          {getFieldValue((phone.tags as any[])[0])}
                         </div>
                       )}
                       
-                      <h3 className="phone-card-title" {...getEditAttributes(phone.title)}>{phone.title}</h3>
+                      <h3 className="phone-card-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h3>
                       
                       {phone.description && (
                         <p className="phone-card-description" {...getEditAttributes(phone.description)}>
-                          {phone.description.length > 100 
-                            ? `${phone.description.substring(0, 100)}...` 
-                            : phone.description
+                          {getFieldValue(phone.description).length > 100 
+                            ? `${getFieldValue(phone.description).substring(0, 100)}...` 
+                            : getFieldValue(phone.description)
                           }
                         </p>
                       )}
@@ -302,29 +304,29 @@ const MobilePhoneList: React.FC = () => {
                       {phone.variants && (phone.variants as any[])?.length > 0 && (
                         <div className="phone-pricing">
                           <span className="price-label">From</span>
-                          <span className="price-value" {...getEditAttributes((phone.variants as any[])[0]?.price)}>₹{(phone.variants as any[])[0].price.toLocaleString('en-IN')}</span>
+                          <span className="price-value" {...getEditAttributes((phone.variants as any[])[0]?.price)}>₹{getFieldValue((phone.variants as any[])[0]?.price).toLocaleString('en-IN')}</span>
                         </div>
                       )}
 
                       <div className="phone-key-specs">
                         {(phone.specifications as any)?.cpu && (
                           <span className="key-spec">
-                            <strong>CPU:</strong> <span {...getEditAttributes((phone.specifications as any)?.cpu)}>{(phone.specifications as any).cpu}</span>
+                            <strong>CPU:</strong> <span {...getEditAttributes((phone.specifications as any)?.cpu)}>{getFieldValue((phone.specifications as any).cpu)}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.ram && (
                           <span className="key-spec">
-                            <strong>RAM:</strong> <span {...getEditAttributes((phone.specifications as any)?.ram)}>{(phone.specifications as any).ram}</span>
+                            <strong>RAM:</strong> <span {...getEditAttributes((phone.specifications as any)?.ram)}>{getFieldValue((phone.specifications as any).ram)}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.storage && (
                           <span className="key-spec">
-                            <strong>Storage:</strong> <span {...getEditAttributes((phone.specifications as any)?.storage)}>{(phone.specifications as any).storage}</span>
+                            <strong>Storage:</strong> <span {...getEditAttributes((phone.specifications as any)?.storage)}>{getFieldValue((phone.specifications as any).storage)}</span>
                           </span>
                         )}
                         {(phone.specifications as any)?.rear_camera && (
                           <span className="key-spec">
-                            <strong>Camera:</strong> <span {...getEditAttributes((phone.specifications as any)?.rear_camera)}>{(phone.specifications as any).rear_camera}</span>
+                            <strong>Camera:</strong> <span {...getEditAttributes((phone.specifications as any)?.rear_camera)}>{getFieldValue((phone.specifications as any).rear_camera)}</span>
                           </span>
                         )}
                       </div>

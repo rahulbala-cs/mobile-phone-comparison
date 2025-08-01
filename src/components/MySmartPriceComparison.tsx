@@ -5,6 +5,8 @@ import { X, Star, ShoppingCart, Eye, Plus } from 'lucide-react';
 import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
 import { parseComparisonUrl, findPhoneBySlug } from '../utils/urlUtils';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import PhoneSelector from './PhoneSelector';
 import './MySmartPriceComparison.css';
 
@@ -107,7 +109,7 @@ const MySmartPriceComparison: React.FC = () => {
     const validPhones = phones.filter(phone => phone !== null) as MobilePhone[];
     if (validPhones.length < 2) return true;
     
-    const values = validPhones.map(phone => phone.specifications[specKey] || 'N/A');
+    const values = validPhones.map(phone => getFieldValue(phone.specifications[specKey]) || 'N/A');
     const uniqueValues = new Set(values);
     return uniqueValues.size > 1;
   };
@@ -168,8 +170,8 @@ const MySmartPriceComparison: React.FC = () => {
   return (
     <div className="msp-comparison">
       <Helmet>
-        <title>{validPhones.map(p => p.title).join(' vs ')} - Mobile Phone Comparison</title>
-        <meta name="description" content={`Compare ${validPhones.map(p => p.title).join(', ')} specifications and prices.`} />
+        <title>{validPhones.map(p => getFieldValue(p.title)).join(' vs ')} - Mobile Phone Comparison</title>
+        <meta name="description" content={`Compare ${validPhones.map(p => getFieldValue(p.title)).join(', ')} specifications and prices.`} />
       </Helmet>
 
       {/* Phone Selector Modal */}
@@ -190,7 +192,7 @@ const MySmartPriceComparison: React.FC = () => {
         <div className="msp-gallery-overlay" onClick={closeImageGallery}>
           <div className="msp-gallery-modal" onClick={(e) => e.stopPropagation()}>
             <div className="msp-gallery-header">
-              <h3>{imageGallery.phone.title} - Photos</h3>
+              <h3 {...getEditAttributes(imageGallery.phone.title)}>{getFieldValue(imageGallery.phone.title)} - Photos</h3>
               <button className="msp-gallery-close" onClick={closeImageGallery}>
                 <X size={24} />
               </button>
@@ -203,7 +205,7 @@ const MySmartPriceComparison: React.FC = () => {
                     format: 'webp',
                     quality: 90
                   })}
-                  alt={imageGallery.phone.title}
+                  alt={getFieldValue(imageGallery.phone.title)}
                   className="msp-gallery-main-image"
                 />
               </div>
@@ -226,7 +228,7 @@ const MySmartPriceComparison: React.FC = () => {
                         format: 'webp',
                         quality: 80
                       })}
-                      alt={`${imageGallery.phone.title} ${index + 1}`}
+                      alt={`${getFieldValue(imageGallery.phone.title)} ${index + 1}`}
                       className="msp-gallery-thumb"
                     />
                   ))}
@@ -264,13 +266,13 @@ const MySmartPriceComparison: React.FC = () => {
                       format: 'webp',
                       quality: 90
                     })}
-                    alt={phone.title}
+                    alt={getFieldValue(phone.title)}
                   />
                 </div>
 
                 {index < phones.length - 1 && <div className="msp-vs-badge">VS</div>}
 
-                <h3 className="msp-product-title">{phone.title}</h3>
+                <h3 className="msp-product-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h3>
 
                 <div className="msp-price">
                   {getPrice(phone) && (
@@ -324,10 +326,10 @@ const MySmartPriceComparison: React.FC = () => {
                     format: 'webp',
                     quality: 80
                   })}
-                  alt={phone.title}
+                  alt={getFieldValue(phone.title)}
                   className="msp-sticky-image"
                 />
-                <span className="msp-sticky-name">{phone.title}</span>
+                <span className="msp-sticky-name" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</span>
               </>
             ) : (
               <span className="msp-sticky-empty">-</span>
@@ -358,7 +360,11 @@ const MySmartPriceComparison: React.FC = () => {
               <div className="msp-spec-label">{spec.label}</div>
               {phones.map((phone, index) => (
                 <div key={`${spec.key}-${index}`} className="msp-spec-value">
-                  {phone ? (phone.specifications[spec.key] || 'N/A') : '-'}
+                  {phone ? (
+                    <span {...getEditAttributes(phone.specifications[spec.key])}>
+                      {getFieldValue(phone.specifications[spec.key]) || 'N/A'}
+                    </span>
+                  ) : '-'}
                 </div>
               ))}
             </React.Fragment>
@@ -407,7 +413,7 @@ const MySmartPriceComparison: React.FC = () => {
                         format: 'webp',
                         quality: 80
                       })}
-                      alt={phone.title}
+                      alt={getFieldValue(phone.title)}
                     />
                     <div className="msp-media-overlay">
                       <Eye size={16} />
@@ -419,7 +425,7 @@ const MySmartPriceComparison: React.FC = () => {
                       <div className="msp-stack-layer msp-stack-1"></div>
                     </div>
                   </div>
-                  <h4 className="msp-media-title">{phone.title}</h4>
+                  <h4 className="msp-media-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h4>
                 </div>
               )
             ))}

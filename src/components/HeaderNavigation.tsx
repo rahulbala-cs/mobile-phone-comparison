@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import contentstackService from '../services/contentstackService';
 import { FallbackHelper } from '../config/fallbacks';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import LogoAB from './shared/LogoAB';
 import './HeaderNavigation.css';
 
@@ -104,7 +106,7 @@ const HeaderNavigation: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav className="nav-desktop">
-          <ul className="nav-list">
+          <ul className={`nav-list ${activeItems.length ? '' : VB_EmptyBlockParentClass}`}>
             {activeItems.map((item, index) => (
               <li key={index} className="nav-item">
                 {item.sub_items && Array.isArray(item.sub_items) && item.sub_items.length > 0 ? (
@@ -114,21 +116,21 @@ const HeaderNavigation: React.FC = () => {
                       onClick={() => toggleDropdown(index)}
                       aria-expanded={activeDropdown === index}
                     >
-                      {item.icon && <span className="nav-icon">{item.icon}</span>}
-                      {item.label}
+                      {item.icon && <span className="nav-icon">{getFieldValue(item.icon)}</span>}
+                      <span {...getEditAttributes(item.label)}>{getFieldValue(item.label)}</span>
                       <span className="dropdown-arrow">▼</span>
                     </button>
                     {activeDropdown === index && (
                       <div className="dropdown-menu">
                         <Link
-                          to={item.url}
+                          to={getFieldValue(item.url)}
                           className="dropdown-item main-link"
                           onClick={() => setActiveDropdown(null)}
                         >
-                          <span className="dropdown-icon">{item.icon}</span>
+                          <span className="dropdown-icon">{getFieldValue(item.icon)}</span>
                           <div>
-                            <div className="dropdown-label">All {item.label}</div>
-                            <div className="dropdown-desc">{item.description}</div>
+                            <div className="dropdown-label" {...getEditAttributes(item.label)}>All {getFieldValue(item.label)}</div>
+                            <div className="dropdown-desc" {...getEditAttributes(item.description)}>{getFieldValue(item.description)}</div>
                           </div>
                         </Link>
                         {item.sub_items?.map((subItem, subIndex) => {
@@ -136,14 +138,14 @@ const HeaderNavigation: React.FC = () => {
                           return (
                           <Link
                             key={subIndex}
-                            to={subItem.sub_url}
+                            to={getFieldValue(subItem.sub_url)}
                             className="dropdown-item"
                             onClick={() => setActiveDropdown(null)}
                           >
-                            <span className="dropdown-icon">{subItem.sub_icon}</span>
+                            <span className="dropdown-icon">{getFieldValue(subItem.sub_icon)}</span>
                             <div>
-                              <div className="dropdown-label">{subItem.sub_label}</div>
-                              <div className="dropdown-desc">{subItem.sub_description}</div>
+                              <div className="dropdown-label" {...getEditAttributes(subItem.sub_label)}>{getFieldValue(subItem.sub_label)}</div>
+                              <div className="dropdown-desc" {...getEditAttributes(subItem.sub_description)}>{getFieldValue(subItem.sub_description)}</div>
                             </div>
                           </Link>
                           );
@@ -153,22 +155,22 @@ const HeaderNavigation: React.FC = () => {
                   </div>
                 ) : item.external_link ? (
                   <a
-                    href={item.url}
-                    className={`nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(item.url) ? 'active' : ''}`}
+                    href={getFieldValue(item.url)}
+                    className={`nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(getFieldValue(item.url)) ? 'active' : ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {item.icon && <span className="nav-icon">{item.icon}</span>}
-                    {item.label}
+                    {item.icon && <span className="nav-icon">{getFieldValue(item.icon)}</span>}
+                    <span {...getEditAttributes(item.label)}>{getFieldValue(item.label)}</span>
                   </a>
                 ) : (
                   <Link
-                    to={item.url}
-                    className={`nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(item.url) ? 'active' : ''}`}
+                    to={getFieldValue(item.url)}
+                    className={`nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(getFieldValue(item.url)) ? 'active' : ''}`}
                     onClick={handleLinkClick}
                   >
-                    {item.icon && <span className="nav-icon">{item.icon}</span>}
-                    {item.label}
+                    {item.icon && <span className="nav-icon">{getFieldValue(item.icon)}</span>}
+                    <span {...getEditAttributes(item.label)}>{getFieldValue(item.label)}</span>
                   </Link>
                 )}
               </li>
@@ -193,28 +195,28 @@ const HeaderNavigation: React.FC = () => {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="nav-mobile">
-          <ul className="mobile-nav-list">
+          <ul className={`mobile-nav-list ${activeItems.length ? '' : VB_EmptyBlockParentClass}`}>
             {activeItems.map((item, index) => (
               <li key={index} className="mobile-nav-item">
                 {item.external_link ? (
                   <a
-                    href={item.url}
+                    href={getFieldValue(item.url)}
                     className={`mobile-nav-link ${item.is_featured ? 'featured' : ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleLinkClick}
                   >
-                    {item.icon && <span className="nav-icon">{item.icon}</span>}
-                    {item.label}
+                    {item.icon && <span className="nav-icon">{getFieldValue(item.icon)}</span>}
+                    <span {...getEditAttributes(item.label)}>{getFieldValue(item.label)}</span>
                   </a>
                 ) : (
                   <Link
-                    to={item.url}
-                    className={`mobile-nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(item.url) ? 'active' : ''}`}
+                    to={getFieldValue(item.url)}
+                    className={`mobile-nav-link ${item.is_featured ? 'featured' : ''} ${isActiveLink(getFieldValue(item.url)) ? 'active' : ''}`}
                     onClick={handleLinkClick}
                   >
-                    {item.icon && <span className="nav-icon">{item.icon}</span>}
-                    {item.label}
+                    {item.icon && <span className="nav-icon">{getFieldValue(item.icon)}</span>}
+                    <span {...getEditAttributes(item.label)}>{getFieldValue(item.label)}</span>
                   </Link>
                 )}
                 {item.sub_items && Array.isArray(item.sub_items) && item.sub_items.length > 0 && (
@@ -224,12 +226,14 @@ const HeaderNavigation: React.FC = () => {
                       return (
                         <li key={subIndex} className="mobile-sub-item">
                           <Link
-                            to={FallbackHelper.getNavigationUrl(subItem.sub_url, 'EMPTY_LINK')}
+                            to={FallbackHelper.getNavigationUrl(getFieldValue(subItem.sub_url), 'EMPTY_LINK')}
                             className="mobile-sub-link"
                             onClick={handleLinkClick}
                           >
-                            {subItem.sub_icon && <span className="nav-icon">{subItem.sub_icon}</span>}
-                            {FallbackHelper.getText(subItem.sub_label, 'UNNAMED_ITEM')}
+                            {subItem.sub_icon && <span className="nav-icon">{getFieldValue(subItem.sub_icon)}</span>}
+                            <span {...getEditAttributes(subItem.sub_label)}>
+                              {FallbackHelper.getText(getFieldValue(subItem.sub_label), 'UNNAMED_ITEM')}
+                            </span>
                           </Link>
                         </li>
                       );

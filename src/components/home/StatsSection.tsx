@@ -49,15 +49,30 @@ const StatsSection: React.FC<StatsSectionProps> = ({ content, stats }) => {
           <div className="stats__grid">
             {stats.map((stat, index) => {
               const Icon = iconMap[stat.icon_name] || Users; // Default to Users icon if not found
+              
+              // Map back to original CMS field names for proper edit attributes
+              const statValue = index === 0 ? content.stat_1_value :
+                               index === 1 ? content.stat_2_value :
+                               index === 2 ? content.stat_3_value :
+                               content.stat_4_value;
+              const statLabel = index === 0 ? content.stat_1_label :
+                               index === 1 ? content.stat_2_label :
+                               index === 2 ? content.stat_3_label :
+                               content.stat_4_label;
+              const statDescription = index === 0 ? content.stat_1_description :
+                                     index === 1 ? content.stat_2_description :
+                                     index === 2 ? content.stat_3_description :
+                                     content.stat_4_description;
+              
               return (
                 <div key={index} className="stats__item">
                   <div className="stats__icon">
                     <Icon size={24} />
                   </div>
                   <div className="stats__data">
-                    <span className="stats__value">{stat.value}</span>
-                    <span className="stats__label">{stat.label}</span>
-                    <span className="stats__description">{stat.description}</span>
+                    <span className="stats__value" {...getEditAttributes(statValue)}>{getFieldValue(statValue)}</span>
+                    <span className="stats__label" {...getEditAttributes(statLabel)}>{getFieldValue(statLabel)}</span>
+                    <span className="stats__description" {...getEditAttributes(statDescription)}>{getFieldValue(statDescription)}</span>
                   </div>
                 </div>
               );
@@ -76,6 +91,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({ content, stats }) => {
                 variant="gradient" 
                 size="lg"
                 onClick={handleGetStarted}
+                {...getEditAttributes(content.cta_button_text)}
               >
                 {getFieldValue(content.cta_button_text)}
               </Button>

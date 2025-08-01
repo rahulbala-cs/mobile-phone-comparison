@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, Laptop, Headphones, ArrowRight, TrendingUp, Clock } from 'lucide-react';
 import { getEditAttributes, VB_EmptyBlockParentClass } from '../../utils/livePreview';
+import { getFieldValue } from '../../types/EditableTags';
 import { Card, Button, Badge } from '../shared';
 import ProgressIndicator from './ProgressIndicator';
 import contentstackService from '../../services/contentstackService';
@@ -131,21 +132,21 @@ const CompareHub: React.FC = () => {
         {/* Header Section */}
         <div className="compare-hub__header">
           <ProgressIndicator 
-            currentStep={pageContent.page_header.progress_current_step || 1} 
-            totalSteps={pageContent.page_header.progress_total_steps || 4} 
+            currentStep={getFieldValue(pageContent.page_header.progress_current_step) || 1} 
+            totalSteps={getFieldValue(pageContent.page_header.progress_total_steps) || 4} 
           />
           <h1 className="compare-hub__title" {...getEditAttributes(pageContent.page_header.main_title)}>
-            {pageContent.page_header.main_title}
+            {getFieldValue(pageContent.page_header.main_title)}
           </h1>
           <p className="compare-hub__subtitle" {...getEditAttributes(pageContent.page_header.subtitle)}>
-            {pageContent.page_header.subtitle}
+            {getFieldValue(pageContent.page_header.subtitle)}
           </p>
         </div>
 
         {/* Category Selection */}
         <section className="compare-hub__section">
           <h2 className="compare-hub__section-title" {...getEditAttributes(pageContent.category_selection.section_title)}>
-            {pageContent.category_selection.section_title}
+            {getFieldValue(pageContent.category_selection.section_title)}
           </h2>
           <div className={`compare-hub__categories ${categories.length ? '' : VB_EmptyBlockParentClass}`}>
             {categories.map((category) => {
@@ -175,10 +176,10 @@ const CompareHub: React.FC = () => {
                   
                   <div className="compare-hub__category-content">
                     <h3 className="compare-hub__category-title" {...getEditAttributes(category.title)}>
-                      {category.title}
+                      {getFieldValue(category.title)}
                     </h3>
                     <p className="compare-hub__category-description" {...getEditAttributes(category.description)}>
-                      {category.description}
+                      {getFieldValue(category.description)}
                     </p>
                   </div>
                   
@@ -204,11 +205,11 @@ const CompareHub: React.FC = () => {
           <div className="compare-hub__section-header">
             <h2 className="compare-hub__section-title" {...getEditAttributes(pageContent.popular_comparisons.section_title)}>
               {pageContent.popular_comparisons.section_icon && (
-                <span className="compare-hub__section-icon">
-                  {React.createElement(getIcon(pageContent.popular_comparisons.section_icon))}
+                <span className="compare-hub__section-icon" {...getEditAttributes(pageContent.popular_comparisons.section_icon)}>
+                  {React.createElement(getIcon(getFieldValue(pageContent.popular_comparisons.section_icon)))}
                 </span>
               )}
-              {pageContent.popular_comparisons.section_title}
+              {getFieldValue(pageContent.popular_comparisons.section_title)}
             </h2>
             <Button 
               variant="outline" 
@@ -216,7 +217,7 @@ const CompareHub: React.FC = () => {
               onClick={handleBrowseAll}
               {...getEditAttributes(pageContent.popular_comparisons.browse_button_text)}
             >
-              {pageContent.popular_comparisons.browse_button_text}
+              {getFieldValue(pageContent.popular_comparisons.browse_button_text)}
             </Button>
           </div>
           
@@ -233,16 +234,17 @@ const CompareHub: React.FC = () => {
                   <Badge 
                     variant={comparison.popularity === 'trending' ? 'success' : 'primary'}
                     size="sm"
+                    {...getEditAttributes(comparison.popularityBadge)}
                   >
-                    {comparison.badgeText}
+                    {getFieldValue(comparison.popularityBadge)}
                   </Badge>
-                  <Badge variant="default" size="sm">
-                    {comparison.category}
+                  <Badge variant="default" size="sm" {...getEditAttributes(comparison.categoryLabel)}>
+                    {getFieldValue(comparison.categoryLabel)}
                   </Badge>
                 </div>
                 
                 <h3 className="compare-hub__comparison-title" {...getEditAttributes(comparison.title)}>
-                  {comparison.title}
+                  {getFieldValue(comparison.title)}
                 </h3>
                 
                 <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
@@ -258,18 +260,20 @@ const CompareHub: React.FC = () => {
           <Card className="compare-hub__help-card" variant="gradient">
             <div className="compare-hub__help-content">
               {pageContent.help_section.help_icon && 
-                React.createElement(getIcon(pageContent.help_section.help_icon), { size: 24 })
+                <span {...getEditAttributes(pageContent.help_section.help_icon)}>
+                  {React.createElement(getIcon(getFieldValue(pageContent.help_section.help_icon)), { size: 24 })}
+                </span>
               }
               <div>
                 <h3 className="compare-hub__help-title" {...getEditAttributes(pageContent.help_section.help_title)}>
-                  {pageContent.help_section.help_title}
+                  {getFieldValue(pageContent.help_section.help_title)}
                 </h3>
                 <p className="compare-hub__help-description" {...getEditAttributes(pageContent.help_section.help_description)}>
-                  {pageContent.help_section.help_description}
+                  {getFieldValue(pageContent.help_section.help_description)}
                 </p>
               </div>
               <Button variant="outline" onClick={handleBrowseAll} {...getEditAttributes(pageContent.help_section.cta_button_text)}>
-                {pageContent.help_section.cta_button_text}
+                {getFieldValue(pageContent.help_section.cta_button_text)}
               </Button>
             </div>
           </Card>

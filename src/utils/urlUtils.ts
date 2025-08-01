@@ -3,16 +3,20 @@
 export const generatePhoneSlug = (title: string): string => {
   // Fixed: Add null safety for title parameter
   if (!title || typeof title !== 'string') {
+    console.log('🔍 DEBUG: generatePhoneSlug received invalid title:', title);
     return '';
   }
   
-  return title
+  const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single
     .trim()
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  
+  console.log(`🔍 DEBUG: generatePhoneSlug("${title}") -> "${slug}"`);
+  return slug;
 };
 
 export const generateComparisonUrl = (...phoneTitles: string[]): string => {
@@ -36,22 +40,30 @@ export const generateComparisonUrl = (...phoneTitles: string[]): string => {
 export const parseComparisonUrl = (params: string): string[] | null => {
   // Fixed: Add null safety for params parameter
   if (!params || typeof params !== 'string') {
+    console.log('🔍 DEBUG: parseComparisonUrl received invalid params:', params);
     return null;
   }
   
+  console.log('🔍 DEBUG: parseComparisonUrl parsing:', params);
+  
   // Expected format: "phone1-vs-phone2-vs-phone3-vs-phone4"
   const slugs = params.split('-vs-');
+  console.log('🔍 DEBUG: Split slugs:', slugs);
   
   if (slugs.length < 2 || slugs.length > 4) {
+    console.log('🔍 DEBUG: Invalid slug count:', slugs.length);
     return null;
   }
   
   // Ensure all slugs are valid (not empty)
   if (slugs.some(slug => !slug || typeof slug !== 'string' || !slug.trim())) {
+    console.log('🔍 DEBUG: Found empty or invalid slug');
     return null;
   }
   
-  return slugs.map(slug => slug.trim());
+  const trimmedSlugs = slugs.map(slug => slug.trim());
+  console.log('🔍 DEBUG: Final parsed slugs:', trimmedSlugs);
+  return trimmedSlugs;
 };
 
 export const findPhoneBySlug = (phones: any[], slug: string): any | null => {

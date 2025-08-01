@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MobilePhone } from '../types/MobilePhone';
 import contentstackService from '../services/contentstackService';
+import { getEditAttributes, VB_EmptyBlockParentClass } from '../utils/livePreview';
+import { getFieldValue } from '../types/EditableTags';
 import './PhoneSelector.css';
 
 interface PhoneSelectorProps {
@@ -8,19 +10,26 @@ interface PhoneSelectorProps {
   onSelect: (phone: MobilePhone) => void;
   onClose: () => void;
   excludePhone?: MobilePhone | null;
+  isLoading?: boolean;
 }
 
 const PhoneSelector: React.FC<PhoneSelectorProps> = ({ 
   phones, 
   onSelect, 
   onClose, 
-  excludePhone 
+  excludePhone,
+  isLoading = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredPhones = phones.filter(phone => {
-    const matchesSearch = phone.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (phone.tags && (phone.tags as any[])?.some((tag: any) => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+    const phoneTitle = getFieldValue(phone.title) || '';
+    const phoneTags = getFieldValue(phone.tags) || [];
+    const matchesSearch = phoneTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (Array.isArray(phoneTags) && phoneTags.some((tag: any) => {
+                           const tagValue = typeof tag === 'string' ? tag : String(tag || '');
+                           return tagValue.toLowerCase().includes(searchTerm.toLowerCase());
+                         }));
     const isNotExcluded = !excludePhone || phone.uid !== excludePhone.uid;
     
     return matchesSearch && isNotExcluded;
@@ -33,6 +42,12 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
   return (
     <div className="phone-selector-overlay">
       <div className="phone-selector-modal">
+        {isLoading && (
+          <div className="phone-selector-loading">
+            <div className="loading-spinner"></div>
+            <p>Adding phone to comparison...</p>
+          </div>
+        )}
         <div className="selector-header">
           <h3>Select a Phone</h3>
           <button className="close-btn" onClick={onClose}>
@@ -50,7 +65,7 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
           />
         </div>
 
-        <div className="phones-grid">
+        <div className={`phones-grid ${filteredPhones.length ? '' : VB_EmptyBlockParentClass}`}>
           {filteredPhones.map((phone) => (
             <div
               key={phone.uid}
@@ -64,22 +79,30 @@ const PhoneSelector: React.FC<PhoneSelectorProps> = ({
                     format: 'webp',
                     quality: 80
                   })}
-                  alt={phone.title}
+                  alt={getFieldValue(phone.title)}
+                  {...getEditAttributes(phone.lead_image)}
                 />
               </div>
               <div className="phone-selector-info">
-                {phone.tags && (phone.tags as any[])?.length > 0 && (
-                  <span className="phone-selector-brand">
-                    {(phone.tags as any[])[0]}
-                  </span>
-                )}
-                <h4 className="phone-selector-title">{phone.title}</h4>
+                {(() => {
+                  const tags = getFieldValue(phone.tags);
+                  return Array.isArray(tags) && tags.length > 0 && (
+                    <span className="phone-selector-brand">
+                      {getFieldValue(tags[0]) || tags[0]}
+                    </span>
+                  );
+                })()}
+                <h4 className="phone-selector-title" {...getEditAttributes(phone.title)}>{getFieldValue(phone.title)}</h4>
                 <div className="phone-quick-specs">
-                  {(phone.specifications as any)?.ram && (
-                    <span className="quick-spec">RAM: {(phone.specifications as any).ram}</span>
+                  {phone.specifications?.ram && (
+                    <span className="quick-spec">
+                      RAM: <span {...getEditAttributes(phone.specifications.ram)}>{getFieldValue(phone.specifications.ram)}</span>
+                    </span>
                   )}
-                  {(phone.specifications as any)?.storage && (
-                    <span className="quick-spec">Storage: {(phone.specifications as any).storage}</span>
+                  {phone.specifications?.storage && (
+                    <span className="quick-spec">
+                      Storage: <span {...getEditAttributes(phone.specifications.storage)}>{getFieldValue(phone.specifications.storage)}</span>
+                    </span>
                   )}
                 </div>
               </div>

@@ -32,15 +32,26 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
     
     return (
       <div className="hero__stats">
-        {heroStats.map((stat, index) => (
-          <div key={`${stat.number}-${stat.label}-${index}`} className="hero__stat">
-            <span className="hero__stat-number">{stat.number}</span>
-            <span className="hero__stat-label">{stat.label}</span>
-          </div>
-        ))}
+        {heroStats.map((stat, index) => {
+          // Map back to original CMS field names for proper edit attributes
+          const statNumber = index === 0 ? content.hero_stat_1_number :
+                            index === 1 ? content.hero_stat_2_number :
+                            content.hero_stat_3_number;
+          const statLabel = index === 0 ? content.hero_stat_1_label :
+                           index === 1 ? content.hero_stat_2_label :
+                           content.hero_stat_3_label;
+          
+          
+          return (
+            <div key={`${stat.number}-${stat.label}-${index}`} className="hero__stat">
+              <span className="hero__stat-number" {...getEditAttributes(statNumber)}>{getFieldValue(statNumber)}</span>
+              <span className="hero__stat-label" {...getEditAttributes(statLabel)}>{getFieldValue(statLabel)}</span>
+            </div>
+          );
+        })}
       </div>
     );
-  }, [heroStats]);
+  }, [heroStats, content.hero_stat_1_number, content.hero_stat_1_label, content.hero_stat_2_number, content.hero_stat_2_label, content.hero_stat_3_number, content.hero_stat_3_label]);
 
   // Memoized phone showcase data to prevent unnecessary re-computation
   const phoneShowcaseData = useMemo(() => {
@@ -48,20 +59,20 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
     if (heroShowcase) {
       return {
         phone1: {
-          name: heroShowcase.phone_1.title,
-          icon: heroShowcase.phone_1.icon || '📱'
+          name: getFieldValue(heroShowcase.phone_1.title),
+          icon: getFieldValue(heroShowcase.phone_1.icon) || '📱'
         },
         phone2: {
-          name: heroShowcase.phone_2.title,
-          icon: heroShowcase.phone_2.icon || '📱'
+          name: getFieldValue(heroShowcase.phone_2.title),
+          icon: getFieldValue(heroShowcase.phone_2.icon) || '📱'
         },
-        vsText: heroShowcase.vs_text,
+        vsText: getFieldValue(heroShowcase.vs_text),
         specs: heroShowcase.specifications.map(spec => ({
-          label: spec.label,
-          phone1Value: spec.phone_1_value,
-          phone2Value: spec.phone_2_value,
-          phone1Better: !spec.phone_2_better,
-          phone2Better: spec.phone_2_better
+          label: getFieldValue(spec.label),
+          phone1Value: getFieldValue(spec.phone_1_value),
+          phone2Value: getFieldValue(spec.phone_2_value),
+          phone1Better: !getFieldValue(spec.phone_2_better),
+          phone2Better: getFieldValue(spec.phone_2_better)
         }))
       };
     }
