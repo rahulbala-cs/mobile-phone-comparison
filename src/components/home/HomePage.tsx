@@ -5,6 +5,7 @@ import { CMSErrorBoundary } from '../shared/ErrorBoundary';
 import { FALLBACK_CONFIG } from '../../config/fallbacks';
 import { usePageView, useComponentPersonalization } from '../../hooks/usePersonalize';
 import { useGlobalPersonalize } from '../../App';
+import { onEntryChange, onLiveEdit } from '../../utils/livePreview';
 import HeroSection from './HeroSection';
 import FeaturesGrid from './FeaturesGrid';
 import FeaturedComparisons from './FeaturedComparisons';
@@ -110,6 +111,19 @@ const HomePage: React.FC = () => {
     if (globalPersonalize.isReady) {
       loadContentWithParallelOptimization();
     }
+    // Set up Live Preview and Visual Builder
+    const reloadContent = () => {
+      hasLoadedRef.current = false;
+      setShowSkeleton(true);
+      setError(null);
+      // Trigger content reload
+      if (globalPersonalize.isReady) {
+        loadContentWithParallelOptimization();
+      }
+    };
+
+    onEntryChange(reloadContent); // For Live Preview
+    onLiveEdit(reloadContent);    // For Visual Builder
   }, [globalPersonalize.isReady, globalPersonalize.variants, globalPersonalize.sdk, trackComponentView]); // eslint-disable-line react-hooks/exhaustive-deps
   // OPTIMIZED: Intentionally excluding error and isInitializing to prevent unnecessary re-fetches
 
