@@ -33,19 +33,25 @@ const getDeviceIcon = (deviceType?: string): string => {
 const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats, heroShowcase }) => {
   const navigate = useNavigate();
   const [deviceComparison, setDeviceComparison] = useState<DeviceComparison | null>(null);
+  const [isLoadingComparison, setIsLoadingComparison] = useState<boolean>(false);
 
   // Fetch device comparison data if comparison_snippet is available
   useEffect(() => {
     const fetchDeviceComparison = async () => {
-      if (content.comparison_snippet && content.comparison_snippet.length > 0) {
-        try {
-          console.log('🎯 Hero fetching device comparison from snippet');
-          const firstComparison = await contentstackService.getDeviceComparison(content.comparison_snippet[0].uid);
-          setDeviceComparison(firstComparison);
-          console.log('✅ Hero device comparison fetched:', firstComparison);
-        } catch (error) {
-          console.error('❌ Hero failed to fetch device comparison:', error);
-        }
+      if (!content.comparison_snippet || content.comparison_snippet.length === 0 || isLoadingComparison) {
+        return;
+      }
+      
+      setIsLoadingComparison(true);
+      try {
+        console.log('🎯 Hero fetching device comparison from snippet');
+        const firstComparison = await contentstackService.getDeviceComparison(content.comparison_snippet[0].uid);
+        setDeviceComparison(firstComparison);
+        console.log('✅ Hero device comparison fetched successfully');
+      } catch (error) {
+        console.error('❌ Hero failed to fetch device comparison:', error);
+      } finally {
+        setIsLoadingComparison(false);
       }
     };
 

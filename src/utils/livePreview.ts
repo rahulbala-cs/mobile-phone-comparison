@@ -5,6 +5,8 @@ import ContentstackLivePreview, { VB_EmptyBlockParentClass } from '@contentstack
 import * as Contentstack from 'contentstack';
 
 // Always-active preview mode for working site
+let hasLoggedPreviewMode = false; // Prevent infinite logging
+
 export const isPreviewMode = (): boolean => {
   if (typeof window === 'undefined') return false;
   
@@ -26,17 +28,17 @@ export const isPreviewMode = (): boolean => {
   // For testing, also check for specific test routes
   const isTestRoute = window.location.pathname.includes('visual-builder-test');
   
-  if (process.env.NODE_ENV === 'development') {
+  // Only log once to prevent infinite console spam
+  if (process.env.NODE_ENV === 'development' && !hasLoggedPreviewMode) {
     console.log('🔍 Preview Mode Detection (Always Active):', {
       hasPreviewParams,
       isInIframe,
       isLivePreviewEnabled,
       isTestRoute,
       currentURL: window.location.href,
-      params: Object.fromEntries(urlParams),
-      userAgent: navigator.userAgent.includes('Contentstack'),
       alwaysActive: true
     });
+    hasLoggedPreviewMode = true;
   }
   
   // ALWAYS ACTIVE: Enable Live Preview for working site

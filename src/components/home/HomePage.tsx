@@ -37,9 +37,13 @@ const HomePage: React.FC = () => {
   // OPTIMIZED PHASE 3: Parallel content + tracking for maximum performance
   useEffect(() => {
     const loadContentWithParallelOptimization = async () => {
-      // Prevent duplicate loads - check both ref and state
-      if (hasLoadedRef.current || homePageContent) return;
+      // Prevent duplicate loads - only check ref to allow initial load
+      if (hasLoadedRef.current) {
+        console.log('🚫 Skipping duplicate load - already loaded or loading');
+        return;
+      }
       hasLoadedRef.current = true;
+      console.log('🚀 Starting HomePage content load');
       
       try {
         // Use variants from global SDK (may be empty if SDK not ready or failed)
@@ -129,8 +133,8 @@ const HomePage: React.FC = () => {
     return () => {
       hasLoadedRef.current = false;
     };
-  }, [globalPersonalize.isReady, globalPersonalize.variants, globalPersonalize.sdk, trackComponentView]); // eslint-disable-line react-hooks/exhaustive-deps
-  // OPTIMIZED: Intentionally excluding error and isInitializing to prevent unnecessary re-fetches
+  }, [globalPersonalize.isReady]); // Only depend on isReady to trigger initial load
+  // FIXED: Removed homePageContent dependency that was preventing initial load
 
   // NEUTRAL SKELETON UI - no visible "Loading" text, seamless experience
   if (showSkeleton) {
