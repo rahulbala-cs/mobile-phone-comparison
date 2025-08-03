@@ -207,6 +207,44 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
             {getFieldValue(content.hero_subtitle)}
           </p>
           
+          {/* Visual component moved here for mobile ordering */}
+          <div className="hero__visual hero__visual--mobile">
+            <Card className="hero__phone-preview" variant="elevated" hover>
+              <div className="hero__phone-showcase">
+                <div className="hero__phone-card hero__phone-card--primary">
+                  <span style={{ fontSize: '32px' }}>{phoneShowcaseData.phone1.icon}</span>
+                  <span {...getEditAttributes(content.hero_phone_1_name)}>{phoneShowcaseData.phone1.name}</span>
+                </div>
+                <div className="hero__vs" {...getEditAttributes(content.hero_vs_text)}>{phoneShowcaseData.vsText}</div>
+                <div className="hero__phone-card hero__phone-card--secondary">
+                  <span style={{ fontSize: '32px' }}>{phoneShowcaseData.phone2.icon}</span>
+                  <span {...getEditAttributes(content.hero_phone_2_name)}>{phoneShowcaseData.phone2.name}</span>
+                </div>
+              </div>
+              <div className="hero__comparison-preview">
+                {phoneShowcaseData.specs.map((spec, index) => (
+                  <div key={`${spec.label}-${index}`} className="hero__spec-row">
+                    <span {...getEditAttributes(content[`hero_spec_${index + 1}_label` as keyof HomePageContent])}>{spec.label}</span>
+                    <span className={`hero__spec-value ${
+                      index === 0 ? (spec.phone1Better ? 'hero__spec-value--better' : '') :
+                      index === 1 ? (!spec.phone2Better ? 'hero__spec-value--better' : '') :
+                      (!spec.phone2Better ? 'hero__spec-value--better' : '')
+                    }`}>
+                      {spec.phone1Value}
+                    </span>
+                    <span className={`hero__spec-value ${
+                      index === 0 ? (!spec.phone1Better ? 'hero__spec-value--better' : '') :
+                      index === 1 ? (spec.phone2Better ? 'hero__spec-value--better' : '') :
+                      (spec.phone2Better ? 'hero__spec-value--better' : '')
+                    }`}>
+                      {spec.phone2Value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+          
           <div className="hero__actions">
             <Button 
               variant="gradient" 
