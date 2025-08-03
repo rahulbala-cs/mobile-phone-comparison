@@ -46,7 +46,7 @@ const Logo: React.FC<LogoProps> = ({
 
   const logoText = (
     <div className={`logo-text logo-text--${size}`}>
-      <span className="logo-text-primary">Mobile</span>
+      <span className="logo-text-primary">Tech</span>
       <span className="logo-text-secondary">Compare</span>
     </div>
   );
