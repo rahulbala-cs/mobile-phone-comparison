@@ -1,11 +1,12 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, Search } from 'lucide-react';
 import { Button, Card } from '../shared';
-import { HomePageContent, HeroStat, HeroPhoneShowcase } from '../../types/HomePageContent';
+import { HomePageContent, HeroStat, HeroPhoneShowcase, DeviceComparison } from '../../types/HomePageContent';
 import { getEditAttributes } from '../../utils/livePreview';
 import { FallbackHelper } from '../../config/fallbacks';
 import { getFieldValue } from '../../types/EditableTags';
+import contentstackService from '../../services/contentstackService';
 import './HeroSection.css';
 
 interface HeroSectionProps {
@@ -14,8 +15,42 @@ interface HeroSectionProps {
   heroShowcase?: HeroPhoneShowcase | null;
 }
 
+// Helper function to get device icon based on device type
+const getDeviceIcon = (deviceType?: string): string => {
+  switch (deviceType?.toLowerCase()) {
+    case 'laptop':
+      return '💻';
+    case 'tablet':
+      return '📱'; // You can change this to a tablet emoji if available
+    case 'smartwatch':
+      return '⌚';
+    case 'phone':
+    default:
+      return '📱';
+  }
+};
+
 const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats, heroShowcase }) => {
   const navigate = useNavigate();
+  const [deviceComparison, setDeviceComparison] = useState<DeviceComparison | null>(null);
+
+  // Fetch device comparison data if comparison_snippet is available
+  useEffect(() => {
+    const fetchDeviceComparison = async () => {
+      if (content.comparison_snippet && content.comparison_snippet.length > 0) {
+        try {
+          console.log('🎯 Hero fetching device comparison from snippet');
+          const firstComparison = await contentstackService.getDeviceComparison(content.comparison_snippet[0].uid);
+          setDeviceComparison(firstComparison);
+          console.log('✅ Hero device comparison fetched:', firstComparison);
+        } catch (error) {
+          console.error('❌ Hero failed to fetch device comparison:', error);
+        }
+      }
+    };
+
+    fetchDeviceComparison();
+  }, [content.comparison_snippet]);
 
   // Memoized navigation handlers to prevent unnecessary re-renders
   const handleCompareNow = useCallback(() => {
@@ -55,7 +90,32 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
 
   // Memoized phone showcase data to prevent unnecessary re-computation
   const phoneShowcaseData = useMemo(() => {
-    // Use new CMS structure if available, otherwise fallback to old structure or defaults
+    // Priority 1: Use device comparison data from comparison_snippet
+    if (deviceComparison) {
+      // Transform device comparison metrics into hero specs format
+      const specs = deviceComparison.comparison_metrics.slice(0, 3).map(metric => ({
+        label: metric.metric_name,
+        phone1Value: metric.left_value,
+        phone2Value: metric.right_value,
+        phone1Better: metric.left_highlight || false,
+        phone2Better: metric.right_highlight || false
+      }));
+
+      return {
+        phone1: {
+          name: deviceComparison.left_device.device_name,
+          icon: getDeviceIcon(deviceComparison.left_device.device_type)
+        },
+        phone2: {
+          name: deviceComparison.right_device.device_name,
+          icon: getDeviceIcon(deviceComparison.right_device.device_type)
+        },
+        vsText: 'VS',
+        specs
+      };
+    }
+
+    // Priority 2: Use new CMS structure if available, otherwise fallback to old structure or defaults
     if (heroShowcase) {
       return {
         phone1: {
@@ -110,6 +170,7 @@ const HeroSection: React.FC<HeroSectionProps> = React.memo(({ content, heroStats
       ]
     };
   }, [
+    deviceComparison, // Add deviceComparison as primary dependency
     heroShowcase,
     content.hero_phone_1_name, content.hero_phone_1_icon,
     content.hero_phone_2_name, content.hero_phone_2_icon,

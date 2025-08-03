@@ -37,8 +37,8 @@ const HomePage: React.FC = () => {
   // OPTIMIZED PHASE 3: Parallel content + tracking for maximum performance
   useEffect(() => {
     const loadContentWithParallelOptimization = async () => {
-      // Prevent duplicate loads
-      if (hasLoadedRef.current) return;
+      // Prevent duplicate loads - check both ref and state
+      if (hasLoadedRef.current || homePageContent) return;
       hasLoadedRef.current = true;
       
       try {
@@ -124,6 +124,11 @@ const HomePage: React.FC = () => {
 
     onEntryChange(reloadContent); // For Live Preview
     onLiveEdit(reloadContent);    // For Visual Builder
+
+    // Cleanup function to reset loading state on unmount
+    return () => {
+      hasLoadedRef.current = false;
+    };
   }, [globalPersonalize.isReady, globalPersonalize.variants, globalPersonalize.sdk, trackComponentView]); // eslint-disable-line react-hooks/exhaustive-deps
   // OPTIMIZED: Intentionally excluding error and isInitializing to prevent unnecessary re-fetches
 
@@ -241,6 +246,7 @@ const HomePage: React.FC = () => {
       </div>
     );
   }
+
 
   // Transform flat CMS data into structured format
   const { heroStats, features, comparisons, stats } = transformHomePageContent(homePageContent);

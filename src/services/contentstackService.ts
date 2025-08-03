@@ -1043,16 +1043,16 @@ class ContentstackService {
       if (variantAliases && variantAliases.length > 0 && shouldPersonalizeContent('home_page')) {
         try {
           const variantAlias = variantAliases.join(',');
-          result = await entryCall.variants(variantAlias).toJSON().find();
+          result = await entryCall.variants(variantAlias).includeReference().toJSON().find();
           console.log('✅ Fetched personalized content with variants:', variantAlias);
         } catch (error) {
           // Fallback to regular fetch if variant fetching fails
           logPersonalizeEvent('HOME_PAGE_VARIANT_FETCH_FALLBACK', { variantAliases, error }, 'warn');
-          result = await entryCall.toJSON().find();
+          result = await entryCall.includeReference().toJSON().find();
           console.log('⚠️ Fallback to default content due to variant fetch error');
         }
       } else {
-        result = await entryCall.toJSON().find();
+        result = await entryCall.includeReference().toJSON().find();
         console.log('📄 Fetched default content (no variants available)');
       }
       
@@ -1077,6 +1077,7 @@ class ContentstackService {
       }
 
       const homePageEntry = entries[0]; // Get the first (and likely only) entry
+      
       
       // Validate the home page content structure
       const contentValidation = validateHomePageContent(homePageEntry);
@@ -1117,6 +1118,37 @@ class ContentstackService {
     }
     
     return this.getHomePageContentWithVariants(variantAliases);
+  }
+
+  // Fetch device comparison entry by UID
+  async getDeviceComparison(uid: string): Promise<any> {
+    try {
+      console.log('🆚 Fetching Device Comparison:', uid);
+      
+      const comparisonEntry = await this.stack
+        .ContentType('device_comparison')
+        .Entry(uid)
+        .includeReference()
+        .toJSON()
+        .fetch();
+      
+      if (!comparisonEntry) {
+        throw ErrorFactory.contentNotFound('Device Comparison', uid, { 
+          contentType: 'device_comparison' 
+        });
+      }
+      
+      console.log('✅ Device Comparison fetched successfully');
+      return comparisonEntry;
+    } catch (error: any) {
+      const appError = ErrorFactory.fromUnknown(error, { 
+        operation: 'getDeviceComparison',
+        contentType: 'device_comparison',
+        uid
+      });
+      ErrorHandler.log(appError);
+      throw appError;
+    }
   }
 
   // Optimize image using Contentstack's Image Delivery API

@@ -1,5 +1,13 @@
 /* Featured Comparisons - Popular phone matchups */
 
+.featured-comparisons__loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 1.125rem;
+}
+
 .featured-comparisons {
   padding: 5rem 0;
   background: #f8fafc;

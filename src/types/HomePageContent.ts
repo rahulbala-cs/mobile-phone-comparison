@@ -1,6 +1,56 @@
 // TypeScript interfaces for Home Page content from Contentstack CMS
 import { MobilePhone } from './MobilePhone';
 
+// Device Comparison interfaces
+export interface DeviceComparisonReference {
+  uid: string;
+  _content_type_uid: string;
+}
+
+export interface DeviceComparison {
+  uid: string;
+  title: string;
+  subtitle?: string;
+  left_device: DeviceInfo;
+  right_device: DeviceInfo;
+  comparison_metrics: ComparisonMetric[];
+  created_at?: string;
+  updated_at?: string;
+  locale?: string;
+  _version?: number;
+}
+
+export interface DeviceInfo {
+  device_name: string;
+  device_image?: {
+    uid: string;
+    url: string;
+    title: string;
+  };
+  device_type?: string;
+  background_color?: string;
+  reference_entry?: {
+    uid: string;
+    _content_type_uid: string;
+  }[];
+}
+
+export interface ComparisonMetric {
+  metric_name: string;
+  left_value: string;
+  right_value: string;
+  left_highlight?: boolean;
+  right_highlight?: boolean;
+  metric_icon?: {
+    uid: string;
+    url: string;
+    title: string;
+  };
+  _metadata?: {
+    uid: string;
+  };
+}
+
 export interface HomePageContent {
   title: string;
   
@@ -126,6 +176,9 @@ export interface HomePageContent {
   cta_title: string;
   cta_description: string;
   cta_button_text: string;
+  
+  // New Comparison Snippet
+  comparison_snippet?: DeviceComparisonReference[];
   
   // Contentstack metadata
   uid?: string;
