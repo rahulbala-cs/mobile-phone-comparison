@@ -4,14 +4,17 @@
 import ContentstackLivePreview, { VB_EmptyBlockParentClass } from '@contentstack/live-preview-utils';
 import * as Contentstack from 'contentstack';
 
-// Always-active preview mode for working site
+// Query parameter controlled preview mode
 let hasLoggedPreviewMode = false; // Prevent infinite logging
 
 export const isPreviewMode = (): boolean => {
   if (typeof window === 'undefined') return false;
   
-  // Check for live preview parameters (still supported for compatibility)
+  // Check for edit mode query parameter - PRIMARY CHECK
   const urlParams = new URLSearchParams(window.location.search);
+  const isEditMode = urlParams.get('edit') === 'true';
+  
+  // Check for live preview parameters (still supported for compatibility)
   const hasPreviewParams = urlParams.has('live_preview') || 
                           urlParams.has('contentstack_live_preview') ||
                           urlParams.has('contentstack_preview') ||
@@ -22,28 +25,27 @@ export const isPreviewMode = (): boolean => {
   // Check if in iframe (Visual Builder)
   const isInIframe = window !== window.top;
   
-  // Check for Live Preview enabled in environment
-  const isLivePreviewEnabled = process.env.REACT_APP_CONTENTSTACK_LIVE_PREVIEW === 'true';
-  
   // For testing, also check for specific test routes
   const isTestRoute = window.location.pathname.includes('visual-builder-test');
   
+  // Determine if preview mode should be active - ONLY via query parameters or iframe
+  const isPreviewActive = isEditMode || hasPreviewParams || isInIframe || isTestRoute;
+  
   // Only log once to prevent infinite console spam
   if (process.env.NODE_ENV === 'development' && !hasLoggedPreviewMode) {
-    console.log('🔍 Preview Mode Detection (Always Active):', {
+    console.log('🔍 Preview Mode Detection:', {
+      isEditMode,
       hasPreviewParams,
       isInIframe,
-      isLivePreviewEnabled,
       isTestRoute,
       currentURL: window.location.href,
-      alwaysActive: true
+      isPreviewActive
     });
     hasLoggedPreviewMode = true;
   }
   
-  // ALWAYS ACTIVE: Enable Live Preview for working site
-  // This makes Visual Builder and edit tags available on all pages
-  return true;
+  // Enable Live Preview only when explicitly requested via ?edit=true or other conditions
+  return isPreviewActive;
 };
 
 // Get preview token from URL
@@ -109,10 +111,16 @@ export const createStack = () => {
   return globalStack;
 };
 
-// Initialize Live Preview - Always active for working site
+// Initialize Live Preview - Only when preview mode is active
 export const initializeLivePreview = async (): Promise<void> => {
+  // Only initialize if preview mode is active (e.g., ?edit=true)
+  if (!isPreviewMode()) {
+    console.log('🚫 Live Preview disabled - no ?edit=true parameter or preview conditions met');
+    return;
+  }
+
   try {
-    console.log('🔧 Initializing Live Preview for Visual Builder (Always Active)');
+    console.log('🔧 Initializing Live Preview for Visual Builder (Edit Mode Active)');
 
     // Create Stack instance FIRST
     const Stack = createStack();
@@ -152,7 +160,7 @@ export const initializeLivePreview = async (): Promise<void> => {
         host: getAppHost().replace('https://', ''),
         region: process.env.REACT_APP_CONTENTSTACK_REGION?.toLowerCase() || 'us'
       },
-      mode: 'builder', // Force builder mode to show Start Editing button
+      mode: 'builder', // Force builder mode to show Start Editing button (only when ?edit=true)
       enable: true,
       ssr: false,
       runScriptsOnUpdate: true, // Required for Visual Builder

@@ -16,6 +16,8 @@ const MobilePhoneList: React.FC = () => {
   const [selectedPhones, setSelectedPhones] = useState<MobilePhone[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(9); // Show 9 items per page
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredPhones, setFilteredPhones] = useState<MobilePhone[]>([]);
 
   // Personalization hooks
   const { getVariantParam, isReady: isPersonalizeReady } = usePersonalize();
@@ -111,11 +113,35 @@ const MobilePhoneList: React.FC = () => {
     onLiveEdit(updateData);    // For Visual Builder
   }, []);
 
-  // Pagination logic
-  const totalPages = Math.ceil(mobilePhones.length / itemsPerPage);
+  // Filter phones based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredPhones(mobilePhones);
+    } else {
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = mobilePhones.filter(phone => {
+        const title = getFieldValue(phone.title).toLowerCase();
+        const description = getFieldValue(phone.description).toLowerCase();
+        
+        // Search in specifications too
+        const specs = phone.specifications || {};
+        const specsText = Object.values(specs).join(' ').toLowerCase();
+        
+        return title.includes(query) || 
+               description.includes(query) || 
+               specsText.includes(query);
+      });
+      setFilteredPhones(filtered);
+    }
+    // Reset to page 1 when search changes
+    setCurrentPage(1);
+  }, [mobilePhones, searchQuery]);
+
+  // Pagination logic using filtered phones
+  const totalPages = Math.ceil(filteredPhones.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentPhones = mobilePhones.slice(startIndex, endIndex);
+  const currentPhones = filteredPhones.slice(startIndex, endIndex);
 
   // Reset to page 1 if current page is out of bounds after items per page change
   useEffect(() => {
@@ -214,6 +240,33 @@ const MobilePhoneList: React.FC = () => {
         <h1 className="list-title">Mobile Phone Comparison</h1>
         <p className="list-subtitle">Compare the latest mobile phones and their specifications • {mobilePhones.length} phones available</p>
         
+        {/* Search/Filter Input */}
+        <div className="search-container">
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Search phones by name, brand, or specs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            {searchQuery && (
+              <button 
+                className="search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="search-results">
+              {filteredPhones.length} phone{filteredPhones.length !== 1 ? 's' : ''} found for "{searchQuery}"
+            </p>
+          )}
+        </div>
+        
         {/* Comparison Bar */}
         {selectedPhones.length > 0 && (
           <div className="comparison-bar">
@@ -255,6 +308,20 @@ const MobilePhoneList: React.FC = () => {
                 Clear
               </button>
             </div>
+          </div>
+        )}
+        
+        {/* No search results message */}
+        {searchQuery && filteredPhones.length === 0 && (
+          <div className="no-results-container">
+            <h3>No phones found</h3>
+            <p>No phones match your search for "{searchQuery}"</p>
+            <button 
+              className="clear-search-btn"
+              onClick={() => setSearchQuery('')}
+            >
+              Clear search to see all phones
+            </button>
           </div>
         )}
         

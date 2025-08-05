@@ -181,12 +181,20 @@ function App() {
     }
   }, []);
   
-  // Initialize Live Preview for Visual Builder (global initialization)
+  // Initialize Live Preview for Visual Builder (only when ?edit=true is present)
   useEffect(() => {
-    initializeLivePreview().catch((error) => {
-      console.warn('Live Preview initialization failed:', error);
-      // Non-blocking - app should continue to work without Live Preview
-    });
+    // Check for edit mode before initializing
+    const urlParams = new URLSearchParams(window.location.search);
+    const isEditMode = urlParams.get('edit') === 'true';
+    
+    if (isEditMode) {
+      initializeLivePreview().catch((error) => {
+        console.warn('Live Preview initialization failed:', error);
+        // Non-blocking - app should continue to work without Live Preview
+      });
+    } else {
+      console.log('🚫 Live Preview not initialized - no ?edit=true parameter');
+    }
   }, []);
 
   return (

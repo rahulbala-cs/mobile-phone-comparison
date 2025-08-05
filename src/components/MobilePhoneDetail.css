@@ -71,32 +71,49 @@
 .hero-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 4rem 0;
-  min-height: 70vh;
+  padding: 3rem 0;
+  min-height: 50vh;
   display: flex;
   align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .hero-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 3rem;
   align-items: center;
 }
 
 .hero-text {
-  max-width: 500px;
+  max-width: 600px;
 }
 
 .brand-tags {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .brand-tag {
@@ -111,30 +128,45 @@
 }
 
 .hero-title {
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 1.5rem;
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.25rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-description {
-  font-size: 1.125rem;
-  line-height: 1.6;
-  opacity: 0.9;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  opacity: 0.95;
+  margin-bottom: 2rem;
+  max-width: 90%;
 }
 
 .hero-image {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .phone-image {
   max-width: 100%;
   height: auto;
-  max-height: 500px;
+  max-height: 450px;
   border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    0 10px 25px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.phone-image:hover {
+  transform: scale(1.02);
 }
 
 /* Image Gallery */
@@ -148,6 +180,7 @@
 .main-image-container {
   position: relative;
 }
+
 
 .image-thumbnails {
   display: flex;
@@ -186,7 +219,7 @@
 
 /* Pricing Section */
 .pricing-section {
-  padding: 5rem 0;
+  padding: 2.5rem 0;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
@@ -260,7 +293,7 @@
 
 /* Buy Links Section - Improved Alignment */
 .buy-links-section {
-  padding: 3rem 0;
+  padding: 2rem 0;
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
 }
@@ -331,21 +364,32 @@
 
 /* Specifications Section */
 .specifications-section {
-  padding: 5rem 0;
-  background: white;
+  padding: 2.5rem 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  position: relative;
+}
+
+.specifications-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
 }
 
 .specs-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
 .specs-title {
-  font-size: 2.75rem;
+  font-size: 2.5rem;
   font-weight: 800;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: #1a202c;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
@@ -354,35 +398,61 @@
 }
 
 .specs-subtitle {
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   text-align: center;
   color: #64748b;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
   font-weight: 500;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .specs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .spec-card {
-  background: #f8fafc;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.spec-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
 }
 
 .spec-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  transform: translateY(-3px);
+  box-shadow: 
+    0 12px 28px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+  border-color: rgba(102, 126, 234, 0.3);
+}
+
+.spec-card:hover::before {
+  transform: scaleX(1);
 }
 
 .spec-icon {
@@ -487,7 +557,7 @@
 
 /* Related Phones Section */
 .related-phones-section {
-  padding: 4rem 0;
+  padding: 2.5rem 0;
   background: white;
 }
 

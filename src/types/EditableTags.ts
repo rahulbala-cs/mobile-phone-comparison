@@ -9,7 +9,7 @@ export interface EditableField<T = string> {
 }
 
 export interface EditableTagsConfig {
-  'data-cslp': string;
+  'data-cslp'?: string;
   [key: string]: any;
 }
 

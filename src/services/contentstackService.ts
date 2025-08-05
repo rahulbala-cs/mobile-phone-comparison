@@ -2,7 +2,7 @@ import * as Contentstack from 'contentstack';
 import * as Utils from '@contentstack/utils';
 import { MobilePhone } from '../types/MobilePhone';
 import { HomePageContent } from '../types/HomePageContent';
-import { createStack } from '../utils/livePreview';
+import { createStack, isPreviewMode } from '../utils/livePreview';
 import { 
   validateContentstackResponse, 
   validateHomePageContent, 
@@ -168,6 +168,12 @@ class ContentstackService {
       return entry as MobilePhone;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags - preview mode not active');
+      return entry as MobilePhone;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Mobile Phone entry');
       
@@ -177,10 +183,15 @@ class ContentstackService {
       const locale = 'en-us';
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Mobile phone fields that need edit tags (using same pattern as home page)
       const editableFields = [
@@ -652,6 +663,12 @@ class ContentstackService {
       return entry as HomePageContent;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags for Home Page - preview mode not active');
+      return entry as HomePageContent;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Home Page content');
       
@@ -662,10 +679,15 @@ class ContentstackService {
       const locale = 'en-us'; // Should match your actual locale
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Type-safe approach to adding edit tags for key fields
       const editableFields = [
@@ -737,6 +759,12 @@ class ContentstackService {
       return entry;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags for Navigation - preview mode not active');
+      return entry;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Navigation Menu content');
       
@@ -746,10 +774,15 @@ class ContentstackService {
       const locale = 'en-us';
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Navigation menu fields that need edit tags
       const editableFields = [
@@ -808,6 +841,12 @@ class ContentstackService {
       return entry;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags for Compare Page - preview mode not active');
+      return entry;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Compare Page content');
       
@@ -817,10 +856,15 @@ class ContentstackService {
       const locale = 'en-us';
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Compare page fields that need edit tags
       const editableFields = [
@@ -855,6 +899,12 @@ class ContentstackService {
       return entry;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags for Comparison Category - preview mode not active');
+      return entry;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Comparison Category content');
       
@@ -864,10 +914,15 @@ class ContentstackService {
       const locale = 'en-us';
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Handle nested category_details object
       if (entry.category_details && typeof entry.category_details === 'object') {
@@ -966,6 +1021,12 @@ class ContentstackService {
       return entry;
     }
 
+    // Only add editable tags when preview mode is active (e.g., ?edit=true)
+    if (!isPreviewMode()) {
+      console.log('🚫 Skipping edit tags for Featured Comparison - preview mode not active');
+      return entry;
+    }
+
     try {
       console.log('🏷️ Adding edit tags to Featured Comparison content');
       
@@ -975,10 +1036,15 @@ class ContentstackService {
       const locale = 'en-us';
       const entryUid = entry.uid || '';
       
-      // Helper function to safely add edit tags
-      const addEditTag = (fieldPath: string): EditableTagsConfig => ({
-        'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
-      });
+      // Helper function to safely add edit tags (only when preview mode is active)
+      const addEditTag = (fieldPath: string): EditableTagsConfig => {
+        if (!isPreviewMode()) {
+          return {}; // Return empty object when not in preview mode
+        }
+        return {
+          'data-cslp': `${contentTypeUid}.${entryUid}.${locale}.${fieldPath}`
+        };
+      };
       
       // Handle nested comparison_details object
       if (entry.comparison_details && typeof entry.comparison_details === 'object') {

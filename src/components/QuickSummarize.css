@@ -52,167 +52,388 @@
   border: 1px solid #fecaca;
 }
 
-/* Inline Summary Response */
-.summary-response-card {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
-  overflow: hidden;
-  animation: slideDown 0.3s ease-out;
+/* Modal Overlay */
+.summary-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
 }
 
-@keyframes slideDown {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-.summary-response-header {
+/* Modal Container */
+.summary-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+.summary-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
-  background: white;
-  border-bottom: 1px solid #e0f2fe;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
-.summary-response-title {
+.summary-modal-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.summary-response-title h3 {
+.summary-modal-title h2 {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
-.summary-success-icon {
-  color: #10b981;
-  flex-shrink: 0;
+.summary-ai-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
 }
 
-.summary-response-close {
-  background: none;
+.summary-modal-close {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: #64748b;
+  color: white;
   cursor: pointer;
   padding: 0.5rem;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.summary-response-close:hover {
-  background: #f1f5f9;
-  color: #475569;
+.summary-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
 }
 
-.summary-response-content {
-  padding: 1.25rem;
+/* Modal Content */
+.summary-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.summary-content-formatted {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.summary-main-text h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .summary-text {
   margin: 0;
   line-height: 1.7;
-  color: #1e293b;
-  font-size: 0.95rem;
+  color: #374151;
+  font-size: 1rem;
   text-align: justify;
   white-space: pre-wrap;
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+/* Recommendation Section */
+.summary-recommendation h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.recommendation-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #f59e0b;
+}
+
+.recommendation-winner {
+  font-size: 1.125rem;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.recommendation-reason {
+  margin: 0.5rem 0;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+.recommendation-score {
+  font-weight: 600;
+  color: #92400e;
+  background: rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Key Differences */
+.summary-differences h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.differences-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  background: #f1f5f9;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.differences-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+/* Pros and Cons */
+.summary-pros-cons h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pros-cons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.phone-pros-cons {
+  background: #fafafa;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.phone-pros-cons h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.pros-section, .cons-section {
+  margin: 1rem 0;
+}
+
+.pros-section h5, .cons-section h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.pros-section h5 {
+  color: #059669;
+}
+
+.cons-section h5 {
+  color: #dc2626;
+}
+
+.pros-section ul, .cons-section ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.pros-section li, .cons-section li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+/* Raw JSON Display */
+.summary-content-raw h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .summary-raw-json {
   background: #1e293b;
   color: #f1f5f9;
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 1.5rem;
+  border-radius: 12px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   white-space: pre-wrap;
   margin: 0;
   overflow-x: auto;
+  border: 1px solid #475569;
 }
 
-.summary-response-footer {
-  padding: 0.75rem 1.25rem;
-  background: rgba(255, 255, 255, 0.5);
-  border-top: 1px solid #e0f2fe;
+/* Modal Footer */
+.summary-modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
-.summary-timestamp {
+.summary-disclaimer {
   font-size: 0.8rem;
-  color: #64748b;
-  font-style: italic;
+  color: #f59e0b;
+  font-weight: 500;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
+.summary-close-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.summary-close-button:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .summary-response-header {
-    padding: 0.875rem 1rem;
+  .summary-modal {
+    margin: 0.5rem;
+    max-height: 95vh;
   }
   
-  .summary-response-title h3 {
-    font-size: 1rem;
+  .summary-modal-header {
+    padding: 1rem 1.5rem;
   }
   
-  .summary-response-content {
-    padding: 1rem;
+  .summary-modal-title h2 {
+    font-size: 1.25rem;
   }
   
-  .summary-text {
-    font-size: 0.9rem;
-    line-height: 1.6;
+  .summary-modal-content {
+    padding: 1.5rem;
   }
   
-  .summary-raw-json {
-    font-size: 0.8rem;
-    padding: 0.875rem;
+  .pros-cons-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-modal-footer {
+    padding: 1rem 1.5rem;
+    flex-direction: column-reverse;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .summary-disclaimer {
+    text-align: center;
+    font-size: 0.75rem;
+  }
+  
+  .summary-close-button {
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
-  .quick-summarize-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+  .summary-modal-overlay {
+    padding: 0.5rem;
   }
   
-  .summary-response-header {
-    padding: 0.75rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .summary-modal-header {
+    padding: 1rem;
   }
   
-  .summary-response-close {
-    align-self: flex-end;
-    margin-top: -0.5rem;
+  .summary-modal-title h2 {
+    font-size: 1.125rem;
+  }
+  
+  .summary-modal-content {
+    padding: 1rem;
   }
   
   .summary-text {
-    font-size: 0.875rem;
-    text-align: left;
+    padding: 1rem;
+    font-size: 0.9rem;
   }
   
-  .summary-raw-json {
-    font-size: 0.75rem;
-    padding: 0.75rem;
+  .recommendation-card {
+    padding: 1rem;
   }
   
-  .summary-response-footer {
-    padding: 0.5rem 0.75rem;
+  .differences-list {
+    padding: 1rem;
+  }
+  
+  .phone-pros-cons {
+    padding: 1rem;
   }
 }

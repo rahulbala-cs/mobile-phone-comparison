@@ -216,6 +216,7 @@ const MobilePhoneDetail: React.FC = () => {
                       {...getEditAttributes(selectedImageIndex === 0 ? mobilePhone.lead_image : mobilePhone.images?.[selectedImageIndex - 1])}
                     />
                   )}
+                  
                 </div>
                 
                 {allImages.length > 1 && (

@@ -16,7 +16,6 @@ const HomePage: React.FC = () => {
   const [homePageContent, setHomePageContent] = useState<HomePageContent | null>(null);
   const [heroShowcase, setHeroShowcase] = useState<HeroPhoneShowcase | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPersonalized, setIsPersonalized] = useState<boolean>(false);
   const [showSkeleton, setShowSkeleton] = useState<boolean>(true);
   
   // Use global personalization context
@@ -101,7 +100,6 @@ const HomePage: React.FC = () => {
         
         // Update UI immediately with content
         setHomePageContent(content);
-        setIsPersonalized(variantAliases.length > 0);
         setShowSkeleton(false);
         
       } catch (error: any) {
@@ -257,23 +255,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="home-page">
-      {/* Development indicator for personalization status */}
-      {process.env.NODE_ENV === 'development' && isPersonalized && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: '#10b981',
-          color: 'white',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          zIndex: 9999,
-          fontFamily: 'monospace'
-        }}>
-          🎯 Personalized
-        </div>
-      )}
       
       <CMSErrorBoundary onRetry={() => window.location.reload()}>
         <HeroSection 
